@@ -1,0 +1,19 @@
+{
+  "name": "旅行智规 · 智能旅游规划",
+  "short_name": "旅行智规",
+  "description": "用地图挑选目的地，汇总口碑并生成旅行路线。",
+  "lang": "zh-CN",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f4f7f6",
+  "theme_color": "#0e7c66",
+  "icons": [
+    {
+      "src": "/assets/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

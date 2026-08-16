@@ -53,6 +53,40 @@ function switchTab(name) {
   );
 }
 
+// ---------- PWA 安装与离线应用壳 ----------
+// 同 Wi-Fi 的 HTTP 访问可以正常使用；要安装到桌面或启用离线壳，需要 HTTPS（localhost 例外）。
+let deferredInstallPrompt = null;
+
+function setupPwa() {
+  const installButton = $("#install-app");
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    installButton.hidden = false;
+  });
+  installButton.addEventListener("click", async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    installButton.hidden = true;
+  });
+  window.addEventListener("appinstalled", () => {
+    deferredInstallPrompt = null;
+    installButton.hidden = true;
+    flash("旅行智规已安装到桌面");
+  });
+
+  const isLocalhost = ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
+  if ("serviceWorker" in navigator && (location.protocol === "https:" || isLocalhost)) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/service-worker.js").catch((error) => {
+        console.warn("PWA 离线缓存注册失败", error);
+      });
+    });
+  }
+}
+
 // ---------- 初始化 ----------
 async function init() {
   try {
@@ -1095,4 +1129,5 @@ document.querySelectorAll(".tabs button").forEach((b) => {
   });
 });
 
+setupPwa();
 init();

@@ -3,7 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0e7c66">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="旅行智规">
   <title>旅行智规 · 智能旅游规划</title>
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="icon" href="/assets/app-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/assets/app-icon.svg">
   <link rel="stylesheet" href="/css/style.css">
   <script src="/assets/echarts.min.js"></script>
 </head>
@@ -11,6 +18,7 @@
   <header>
     <div class="brand">🧭 旅行智规 <span class="version">v0.1</span></div>
     <div class="sub">开局一张中国地图,选出你想去的地方</div>
+    <button id="install-app" class="install-app" type="button" hidden>安装到桌面</button>
     <div class="badge" id="mode-badge">加载中...</div>
   </header>
 
