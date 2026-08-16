@@ -27,11 +27,14 @@ def init_db() -> None:
         with open(SCHEMA_PATH, "r", encoding="utf-8") as f:
             conn.executescript(f.read())
         # 轻量迁移:为旧库补列
-        for col in ("lng", "lat", "grade", "price", "commercial"):
+        for col in ("lng", "lat", "grade", "price", "commercial", "amap_poi_id",
+                    "data_source", "source_updated_at"):
             if col == "price":
                 ddl = "ALTER TABLE spots ADD COLUMN price REAL"
             elif col == "commercial":
                 ddl = "ALTER TABLE spots ADD COLUMN commercial TEXT"
+            elif col in ("amap_poi_id", "data_source", "source_updated_at"):
+                ddl = f"ALTER TABLE spots ADD COLUMN {col} TEXT"
             else:
                 ddl = ("ALTER TABLE spots ADD COLUMN grade TEXT" if col == "grade"
                        else "ALTER TABLE spots ADD COLUMN %s REAL" % col)

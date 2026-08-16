@@ -12,3 +12,6 @@ os.environ["TRAVEL_DB_PATH"] = str(ROOT / "data" / "test_travel.db")
 # 屏蔽真实 DeepSeek key(config.load_dotenv 用 setdefault,不会覆盖已存在的空值),
 # 保证测试走确定性 mock;LLM 路径由 test_llm.py 用假 key 单独覆盖
 os.environ["DEEPSEEK_API_KEY"] = ""
+# The limiter is enabled by default in deployed environments.  Most integration
+# tests exercise unrelated endpoints, so keep them independent of call order.
+os.environ["RATE_LIMIT_ENABLED"] = "0"

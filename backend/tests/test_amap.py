@@ -14,12 +14,15 @@ class FakeResp:
     def json(self):
         return self._p
 
+    def raise_for_status(self):
+        return None
+
 
 AMAP_OK = {
     "status": "1",
     "info": "OK",
     "pois": [
-        {"name": "测试景区A", "address": "某路1号", "location": "116.1,39.9",
+        {"id": "AMAP-A", "name": "测试景区A", "address": "某路1号", "location": "116.1,39.9",
          "type": "风景名胜;国家级景点", "biz_ext": {"rating": "4.8"}},
         {"name": "测试景区B", "address": "", "location": "bad",   # 坐标非法,应跳过
          "type": "", "biz_ext": {}},
@@ -48,6 +51,7 @@ def test_fetch_scenic_spots_parses(monkeypatch):
     pois = amap_poi.fetch_scenic_spots("北京")
     assert len(pois) == 2              # 非法坐标被跳过
     assert pois[0]["rating"] == 4.8
+    assert pois[0]["amap_id"] == "AMAP-A"
     assert pois[0]["lng"] == 116.1 and pois[0]["lat"] == 39.9
     assert captured["params"]["key"] == "test-key"
     assert captured["params"]["city"] == "北京"
@@ -66,17 +70,21 @@ def test_fetch_scenic_spots_error_status(monkeypatch):
 
 def test_import_into_db_dedup():
     conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
     conn.execute(
         "CREATE TABLE spots (id INTEGER PRIMARY KEY, city_id INTEGER, name TEXT, "
         "poi_rating REAL, address TEXT, tags TEXT, lng REAL, lat REAL, "
+        "amap_poi_id TEXT, data_source TEXT, source_updated_at TEXT, "
         "UNIQUE(city_id, name))"
     )
-    pois = [{"name": "新景区", "address": "a", "rating": 4.5, "lng": 1.0, "lat": 2.0,
-             "type": "风景名胜"}]
+    conn.execute("CREATE TABLE spot_sources (id INTEGER PRIMARY KEY, spot_id INTEGER, provider TEXT, external_id TEXT, source_url TEXT, payload_json TEXT, fetched_at TEXT, confidence REAL, UNIQUE(spot_id, provider, external_id))")
+    pois = [{"amap_id": "B0TEST", "name": "新景区", "address": "a", "rating": 4.5, "lng": 1.0, "lat": 2.0,
+             "type": "风景名胜", "typecode": "110000", "keyword": "景点"}]
     assert amap_poi.import_into_db(conn, 1, pois) == 1
     row = conn.execute("SELECT * FROM spots").fetchone()
     assert row[2] == "新景区" and row[3] == 4.5
     assert amap_poi.import_into_db(conn, 1, pois) == 0  # 同名去重
+    assert conn.execute("SELECT COUNT(*) FROM spot_sources").fetchone()[0] == 1
 
 
 def test_fetch_keyword_pois(monkeypatch):

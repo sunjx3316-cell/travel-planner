@@ -8,5 +8,8 @@
         Referrer-Policy "strict-origin-when-cross-origin"
     }
 
-    reverse_proxy travel-planner:8000
+    reverse_proxy travel-planner:8000 {
+        # 由反向代理覆盖真实客户端 IP；应用容器未暴露 8000 端口。
+        header_up X-Client-IP {remote_host}
+    }
 }

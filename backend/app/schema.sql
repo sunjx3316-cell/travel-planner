@@ -20,8 +20,29 @@ CREATE TABLE IF NOT EXISTS spots (
     grade TEXT,
     price REAL,
     commercial TEXT,
+    amap_poi_id TEXT,
+    data_source TEXT,
+    source_updated_at TEXT,
     UNIQUE(city_id, name)
 );
+
+-- 基础事实的来源留痕：保存结构化 POI 证据而不是整篇平台攻略正文。
+-- 同一景点可有多个来源；同一来源标识重复采集时只刷新快照与时间。
+CREATE TABLE IF NOT EXISTS spot_sources (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    spot_id INTEGER NOT NULL REFERENCES spots(id) ON DELETE CASCADE,
+    provider TEXT NOT NULL,
+    external_id TEXT NOT NULL,
+    source_url TEXT,
+    payload_json TEXT,
+    fetched_at TEXT NOT NULL,
+    confidence REAL NOT NULL DEFAULT 0.7,
+    UNIQUE(spot_id, provider, external_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_spot_sources_spot ON spot_sources(spot_id, provider);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_spot_sources_external
+    ON spot_sources(provider, external_id) WHERE external_id <> '';
 
 CREATE TABLE IF NOT EXISTS notes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
