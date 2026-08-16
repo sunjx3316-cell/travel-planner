@@ -15,6 +15,7 @@ data/raw/
 data/xhs_cookies.json
 data/xhs_daily_count.json
 .env
+.env.production
 
 # 发布包与本地调试产物
 dist/

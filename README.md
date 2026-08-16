@@ -69,6 +69,8 @@ Key 保存在包内 `.env`,随时可改;内置 `data/travel.db`(600+ 景点/AI �
 `手机同 Wi-Fi 访问: http://电脑IP:8000`(首次需在防火墙放行 Python),
 手机浏览器打开即可体验。
 
+**跨网络手机访问 / 安装到桌面**:使用 Docker + Caddy 部署到公网 HTTPS 域名，手机无需与电脑同一 Wi-Fi；部署说明见 [腾讯云部署](docs/腾讯云部署.md)。
+
 ## 配置
 
 复制 `.env.example` 为 `.env`:

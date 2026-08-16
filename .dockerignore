@@ -1,0 +1,15 @@
+.git/
+.venv/
+.browsers/
+.pip-cache/
+.pip-tmp/
+.pip-wheels/
+__pycache__/
+*.pyc
+.pytest_cache/
+data/
+dist/
+photo/
+.env
+.env.production
+node_err.txt
