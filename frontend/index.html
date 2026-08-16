@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>旅行智规 · 智能旅游规划</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="/assets/echarts.min.js"></script>
+</head>
+<body>
+  <header>
+    <div class="brand">🧭 旅行智规 <span class="version">v0.1</span></div>
+    <div class="sub">开局一张中国地图,选出你想去的地方</div>
+    <div class="badge" id="mode-badge">加载中...</div>
+  </header>
+
+  <main>
+    <section class="map-panel">
+      <button id="map-back" class="map-back" style="display:none">← 返回全国</button>
+      <div id="map-filters" class="map-filters" style="display:none">
+        <button class="filter-chip active" data-cat="全部" onclick="setSpotFilter('全部')">全部</button>
+        <button class="filter-chip" data-cat="自然" onclick="setSpotFilter('自然')">🌿 自然</button>
+        <button class="filter-chip" data-cat="人文" onclick="setSpotFilter('人文')">🏯 人文</button>
+        <button class="filter-chip" data-cat="综合" onclick="setSpotFilter('综合')">🌐 综合</button>
+      </div>
+      <div id="map-layers" class="map-filters" style="display:none;top:56px">
+        <button class="layer-chip active" data-layer="all" onclick="setMapLayer('all')">全部</button>
+        <button class="layer-chip" data-layer="spot" onclick="setMapLayer('spot')">🏞 景区</button>
+        <button class="layer-chip" data-layer="food" onclick="setMapLayer('food')">🏮 美食街</button>
+      </div>
+      <div id="map"></div>
+      <div class="map-hint" id="map-hint">点击省份 → 进入该省地图</div>
+    </section>
+
+    <section class="side-panel">
+      <nav class="tabs">
+        <button data-tab="cities" class="active">🏙 城市</button>
+        <button data-tab="spots">🏞 景区</button>
+        <button data-tab="loops">🗺 环线</button>
+        <button data-tab="cart">🛒 清单 <span id="cart-count" class="count">0</span></button>
+        <button data-tab="plans">🗺 方案</button>
+      </nav>
+
+      <div id="tab-cities" class="tab-pane active"></div>
+      <div id="tab-spots" class="tab-pane"></div>
+      <div id="tab-loops" class="tab-pane"></div>
+      <div id="tab-cart" class="tab-pane"></div>
+      <div id="tab-plans" class="tab-pane"></div>
+    </section>
+  </main>
+
+  <footer>
+    数据来源:示例数据(演示用);正式数据将从小红书采集并由 AI 加工(攻略整合 / 暗广过滤 / 避雷共识)。
+    本项目仅用于个人学习演示。
+  </footer>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

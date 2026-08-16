@@ -1,0 +1,26 @@
+# 运行时产物
+.venv/
+.browsers/
+__pycache__/
+*.pyc
+.pytest_cache/
+.pip-wheels/
+.pip-tmp/
+.pip-cache/
+
+# 数据与凭证
+data/*.db
+data/images/
+data/raw/
+data/xhs_cookies.json
+data/xhs_daily_count.json
+.env
+
+# 发布包与本地调试产物
+dist/
+photo/
+node_err.txt
+data/*.bak
+data/debug/
+data/test_collector_tmp/
+scripts/_tmp_*.py
