@@ -10,6 +10,7 @@ const state = {
   cart: [],
   planDays: 3,
   cityRec: null,
+  workbench: null,
 };
 
 // ---------- 基础工具 ----------
@@ -118,6 +119,7 @@ let provinceSpots = [];
 let spotFilter = "全部";
 let mapLayer = "all";   // all | spot | food
 let lastPlans = [];
+const WORKBENCH_STORAGE_KEY = "travel-planner-workbench-plans-v1";
 
 const SPOT_CAT_COLOR = { 自然: "#16a34a", 人文: "#ea580c", 综合: "#2563eb" };
 
@@ -1110,6 +1112,7 @@ function renderPlans(cityName, plans) {
       <div class="plan-card">
         <h4>${esc(p.name)}</h4>
         <div class="summary">${p.source ? `来源: ${esc(p.source)} · ` : ""}${esc(p.summary)}</div>
+        <div class="plan-actions"><button class="btn sm accent" onclick="openPlanWorkbench(${i})">🛠 微调此方案</button></div>
         ${p.route && p.route.length ? `
           <div class="route-strip">${p.route.map((l) => {
             const tr = l.transport || {};
@@ -1143,6 +1146,156 @@ function renderPlans(cityName, plans) {
   switchTab("plans");
 }
 
+function clonePlan(plan) { return JSON.parse(JSON.stringify(plan)); }
+
+function normalizedWorkbenchDays(plan) {
+  plan.daily = Array.isArray(plan.daily) ? plan.daily : [];
+  plan.daily.forEach((day, i) => {
+    day.day = i + 1;
+    day.items = Array.isArray(day.items) ? day.items : [];
+  });
+}
+
+function openPlanWorkbench(index) {
+  const plan = lastPlans[index];
+  if (!plan || !Array.isArray(plan.daily)) return flash("这套方案暂时没有可编辑的每日安排");
+  state.workbench = { plan: clonePlan(plan), originalIndex: index };
+  normalizedWorkbenchDays(state.workbench.plan);
+  renderPlanWorkbench();
+  switchTab("plans");
+}
+
+function closePlanWorkbench() {
+  state.workbench = null;
+  if (lastPlans.length) renderPlans("已生成", lastPlans);
+  else $("#tab-plans").innerHTML = '<div class="empty-hint">先生成一套行程方案，再进入微调工作台。</div>';
+}
+
+function updateWorkbenchMeta(field, value) {
+  if (state.workbench) state.workbench.plan[field] = value;
+}
+
+function updateWorkbenchItem(dayIndex, itemIndex, field, value) {
+  const item = state.workbench?.plan?.daily?.[dayIndex]?.items?.[itemIndex];
+  if (item) item[field] = value;
+}
+
+function moveWorkbenchItem(dayIndex, itemIndex, direction) {
+  const items = state.workbench?.plan?.daily?.[dayIndex]?.items;
+  const target = itemIndex + direction;
+  if (!items || target < 0 || target >= items.length) return;
+  [items[itemIndex], items[target]] = [items[target], items[itemIndex]];
+  renderPlanWorkbench();
+}
+
+function shiftWorkbenchItemDay(dayIndex, itemIndex, direction) {
+  const plan = state.workbench?.plan;
+  const targetDay = dayIndex + direction;
+  if (!plan || targetDay < 0 || targetDay >= plan.daily.length) return;
+  const [item] = plan.daily[dayIndex].items.splice(itemIndex, 1);
+  plan.daily[targetDay].items.push(item);
+  renderPlanWorkbench();
+}
+
+function removeWorkbenchItem(dayIndex, itemIndex) {
+  const items = state.workbench?.plan?.daily?.[dayIndex]?.items;
+  if (!items) return;
+  items.splice(itemIndex, 1);
+  renderPlanWorkbench();
+}
+
+function addWorkbenchDay() {
+  const plan = state.workbench?.plan;
+  if (!plan) return;
+  plan.daily.push({ day: plan.daily.length + 1, note: "", items: [] });
+  normalizedWorkbenchDays(plan);
+  renderPlanWorkbench();
+}
+
+function addWorkbenchCartItem(dayIndex) {
+  const select = $("#workbench-cart-item");
+  const item = state.cart.find((entry) => String(entry.spot_id) === select?.value);
+  const day = state.workbench?.plan?.daily?.[dayIndex];
+  if (!item || !day) return flash("请先从清单选择一个景点");
+  day.items.push({ spot: item.spot_name, time: "待安排", why: "从愿望清单手动加入" });
+  renderPlanWorkbench();
+}
+
+function savedWorkbenchPlans() {
+  try {
+    const value = JSON.parse(localStorage.getItem(WORKBENCH_STORAGE_KEY) || "[]");
+    return Array.isArray(value) ? value : [];
+  } catch (_) { return []; }
+}
+
+function savePlanWorkbench() {
+  const draft = state.workbench?.plan;
+  if (!draft) return;
+  normalizedWorkbenchDays(draft);
+  const saved = savedWorkbenchPlans();
+  saved.unshift({ saved_at: new Date().toISOString(), plan: clonePlan(draft) });
+  localStorage.setItem(WORKBENCH_STORAGE_KEY, JSON.stringify(saved.slice(0, 20)));
+  const index = state.workbench.originalIndex;
+  if (Number.isInteger(index) && lastPlans[index]) lastPlans[index] = clonePlan(draft);
+  flash("已保存到本机；后续登录后可同步到云端");
+  renderPlanWorkbench();
+}
+
+function openSavedPlanWorkbench(index) {
+  const saved = savedWorkbenchPlans()[index];
+  if (!saved?.plan) return flash("本机方案不存在或已损坏");
+  state.workbench = { plan: clonePlan(saved.plan), originalIndex: null };
+  normalizedWorkbenchDays(state.workbench.plan);
+  renderPlanWorkbench();
+}
+
+function renderSavedPlanLibrary() {
+  const saved = savedWorkbenchPlans();
+  const pane = $("#tab-plans");
+  pane.innerHTML = saved.length ? `
+    <h3 style="margin-bottom:8px">本机保存的行程</h3>
+    <div class="summary" style="margin-bottom:10px">仅保存在当前浏览器；登录与云同步上线后可跨设备使用。</div>
+    ${saved.map((entry, index) => `<div class="plan-card"><h4>${esc(entry.plan?.name || "未命名行程")}</h4><div class="summary">${esc(entry.plan?.summary || "")}</div><div class="summary">保存时间：${new Date(entry.saved_at).toLocaleString()}</div><button class="btn sm accent" onclick="openSavedPlanWorkbench(${index})">🛠 打开工作台</button></div>`).join("")}`
+    : '<div class="empty-hint">先生成一套行程方案，再进入微调工作台。</div>';
+}
+
+function renderPlanWorkbench() {
+  const wb = state.workbench;
+  if (!wb) return;
+  const plan = wb.plan;
+  normalizedWorkbenchDays(plan);
+  const cartOptions = state.cart.length
+    ? state.cart.map((item) => `<option value="${item.spot_id}">${esc(item.city_name)} · ${esc(item.spot_name)}</option>`).join("")
+    : '<option value="">清单为空</option>';
+  $("#tab-plans").innerHTML = `
+    <div class="workbench-head">
+      <div><div class="eyebrow">行程工作台</div><h3>把 AI 方案改成你的安排</h3><p>编辑不会重新请求 AI；保存后会留在这台设备。</p></div>
+      <div class="workbench-head-actions"><button class="btn sm" onclick="closePlanWorkbench()">← 返回方案</button><button class="btn sm primary" onclick="savePlanWorkbench()">💾 保存本机版本</button></div>
+    </div>
+    <div class="workbench-meta">
+      <label>方案名<input value="${esc(plan.name || "我的行程")}" onchange="updateWorkbenchMeta('name', this.value)"></label>
+      <label>说明<input value="${esc(plan.summary || "")}" onchange="updateWorkbenchMeta('summary', this.value)"></label>
+      <label>从清单补充<select id="workbench-cart-item">${cartOptions}</select></label>
+      <button class="btn sm" onclick="addWorkbenchDay()">＋ 增加一天</button>
+    </div>
+    <div class="workbench-days">
+      ${plan.daily.map((day, dayIndex) => `
+        <section class="workbench-day">
+          <div class="workbench-day-title">第 ${day.day} 天 <span>${day.items.length} 个安排</span></div>
+          <input class="workbench-note" placeholder="当天备注：如下午预留休息/交通" value="${esc(day.note || "")}" onchange="state.workbench.plan.daily[${dayIndex}].note=this.value">
+          <div class="workbench-items">
+            ${day.items.length ? day.items.map((item, itemIndex) => `
+              <div class="workbench-item">
+                <div class="workbench-order"><button title="上移" onclick="moveWorkbenchItem(${dayIndex}, ${itemIndex}, -1)" ${itemIndex === 0 ? "disabled" : ""}>↑</button><button title="下移" onclick="moveWorkbenchItem(${dayIndex}, ${itemIndex}, 1)" ${itemIndex === day.items.length - 1 ? "disabled" : ""}>↓</button></div>
+                <div class="workbench-fields"><input class="workbench-spot" value="${esc(item.spot || "")}" aria-label="景点名称" onchange="updateWorkbenchItem(${dayIndex}, ${itemIndex}, 'spot', this.value)"><input value="${esc(item.time || "")}" aria-label="时段" placeholder="时段" onchange="updateWorkbenchItem(${dayIndex}, ${itemIndex}, 'time', this.value)"><input value="${esc(item.why || "")}" aria-label="安排理由" placeholder="安排理由" onchange="updateWorkbenchItem(${dayIndex}, ${itemIndex}, 'why', this.value)"></div>
+                <div class="workbench-item-actions"><button title="移到前一天" onclick="shiftWorkbenchItemDay(${dayIndex}, ${itemIndex}, -1)" ${dayIndex === 0 ? "disabled" : ""}>←</button><button title="移到后一天" onclick="shiftWorkbenchItemDay(${dayIndex}, ${itemIndex}, 1)" ${dayIndex === plan.daily.length - 1 ? "disabled" : ""}>→</button><button class="danger" title="删除安排" onclick="removeWorkbenchItem(${dayIndex}, ${itemIndex})">×</button></div>
+              </div>`).join("") : '<div class="workbench-empty">当天暂未安排景点</div>'}
+          </div>
+          <button class="btn sm" onclick="addWorkbenchCartItem(${dayIndex})">＋ 从清单加入当天</button>
+        </section>`).join("")}
+    </div>`;
+}
+
 // ---------- 事件绑定 ----------
 document.querySelectorAll(".tabs button").forEach((b) => {
   b.addEventListener("click", () => {
@@ -1150,6 +1303,7 @@ document.querySelectorAll(".tabs button").forEach((b) => {
     if (b.dataset.tab === "cart") renderCart();
     if (b.dataset.tab === "loops") renderLoops();
     if (b.dataset.tab === "spots" && !state.currentSpots.length && !state.detail) renderSpots();
+    if (b.dataset.tab === "plans" && !state.workbench && !lastPlans.length) renderSavedPlanLibrary();
   });
 });
 
