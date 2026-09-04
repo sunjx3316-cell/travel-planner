@@ -32,7 +32,8 @@ def spot_detail(spot_id: int):
         if s is None:
             raise HTTPException(404, "景区不存在")
         notes = conn.execute(
-            "SELECT title, content, note_type, is_sample, images_json FROM notes WHERE spot_id=? ORDER BY id",
+            "SELECT title, content, note_type, is_sample, images_json, source_url, fetched_at "
+            "FROM notes WHERE spot_id=? ORDER BY id",
             (spot_id,),
         ).fetchall()
         summary = conn.execute(

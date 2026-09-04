@@ -74,6 +74,42 @@ def test_spot_detail():
     assert body["name"] == "故宫博物院"
     assert len(body["notes"]) == 4
     assert "images" in body
+    assert "source_url" in body["notes"][0]
+    assert "fetched_at" in body["notes"][0]
+
+
+def test_submit_user_review_rebuilds_summary_and_dedupes():
+    """用户评价匿名入库、重算口碑卡，并按内容去重。"""
+    from backend.app.db import get_conn
+
+    cities = client.get("/api/cities").json()
+    bj = next(c for c in cities if c["name"] == "北京")
+    spot = next(s for s in client.get(f"/api/cities/{bj['id']}/spots").json()
+                if s["name"] == "故宫博物院")
+    body = {
+        "title": "周末实测",
+        "note_type": "avoid",
+        "content": "周六上午检票排队约四十分钟，建议提前预约并避开中午。",
+    }
+    try:
+        first = client.post(f"/api/spots/{spot['id']}/reviews", json=body)
+        assert first.status_code == 200
+        assert first.json()["added"] == 1 and first.json()["summary_rebuilt"] is True
+        duplicate = client.post(f"/api/spots/{spot['id']}/reviews", json=body)
+        assert duplicate.status_code == 409
+        detail = client.get(f"/api/spots/{spot['id']}").json()
+        assert detail["summary"] is not None
+        assert any((n.get("source_url") or "").startswith("user:") for n in detail["notes"])
+    finally:
+        # 该用例验证写入行为，但不能改变后续种子数据断言。
+        conn = get_conn()
+        try:
+            conn.execute("DELETE FROM notes WHERE spot_id=? AND title=? AND content=?",
+                         (spot["id"], body["title"], body["content"]))
+            conn.commit()
+        finally:
+            conn.close()
+        client.post(f"/api/spots/{spot['id']}/summarize")
 
 
 def test_summarize_creates_consensus():

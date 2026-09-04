@@ -459,6 +459,19 @@ button.btn.sm { padding: 4px 9px; font-size: 12px; }
 .note-type.guide { background: #dbeafe; color: #1e40af; }
 .note-type.avoid { background: #fee2e2; color: #b91c1c; }
 .note-type.mixed { background: #fef3c7; color: #92400e; }
+.evidence-box { margin: 10px 0; }
+.evidence-box details { border: 1px dashed var(--border); border-radius: 8px; padding: 7px 9px; }
+.evidence-box summary { font-size: 12px; color: var(--muted); cursor: pointer; }
+.evidence-copy { margin-top: 7px; color: var(--muted); font-size: 11px; line-height: 1.6; }
+.evidence-source { display: inline-block; margin: 0 5px 4px 0; padding: 1px 6px; border-radius: 999px; background: #e7f4ef; color: var(--primary-dark); }
+.review-form { background: #f8fffc; border-color: #bde2d7; }
+.review-form h4 { margin-bottom: 5px; }
+.review-tip { color: var(--muted); font-size: 11px; line-height: 1.55; margin-bottom: 8px; }
+.review-form input, .review-form textarea, .review-form select { box-sizing: border-box; width: 100%; border: 1px solid var(--border); border-radius: 7px; padding: 7px 8px; font: inherit; margin-bottom: 7px; }
+.review-form textarea { min-height: 76px; resize: vertical; }
+.review-form-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.review-form-row select { width: auto; margin: 0; }
+.review-form-row span { color: var(--muted); font-size: 11px; }
 
 /* cart & plans */
 .cart-row { cursor: default; display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }

@@ -643,16 +643,38 @@ function summaryHtml(s) {
     </div>`;
 }
 
-function sampleNotesHtml(notes) {
-  return `<div class="sample-notes"><details>
-    <summary>查看原始笔记(${notes.length} 篇 · 当前为示例数据,正式数据来自小红书)</summary>
-    ${notes.map((n) => `
-      <div class="note-item">
-        <span class="t">${esc(n.title)}</span>
-        <span class="note-type ${esc(n.note_type || "guide")}">${esc(n.note_type || "guide")}</span>
-        <div class="c">${esc((n.content || "").slice(0, 120))}${(n.content || "").length > 120 ? "..." : ""}</div>
-      </div>`).join("")}
+function evidenceSourceLabel(note) {
+  const source = String(note.source_url || "").split(":", 1)[0].toLowerCase();
+  return ({ amap: "高德", baidu: "百度地图", xhs: "小红书", mafengwo: "马蜂窝",
+    ctrip: "携程", dianping: "大众点评", user: "用户提交", paste: "人工导入" })[source]
+    || (note.is_sample ? "演示样例" : "已授权/待核验来源");
+}
+
+function evidenceHtml(notes) {
+  const realCount = notes.filter((note) => !note.is_sample).length;
+  const sources = [...new Set(notes.map(evidenceSourceLabel))];
+  return `<div class="evidence-box"><details>
+    <summary>评价证据概览 · ${notes.length} 条${realCount ? `（含 ${realCount} 条真实提交）` : "（当前为演示样例）"}</summary>
+    <div class="evidence-copy">${sources.map((source) => `<span class="evidence-source">${esc(source)}</span>`).join("")}</div>
+    <div class="evidence-copy">用户评价仅用于匿名聚合；未经授权的第三方原文和图片不会在这里公开展示。</div>
   </details></div>`;
+}
+
+function reviewFormHtml(spotId) {
+  return `<div class="review-form panel-box">
+    <h4>✍️ 分享你的真实体验</h4>
+    <div class="review-tip">匿名提交；尽量写清楚时间、价格、排队时长或具体位置。情绪化攻击和广告会被降低权重。</div>
+    <input id="review-title" maxlength="60" placeholder="标题（可选，例如：周末上午实测）">
+    <div class="review-form-row">
+      <select id="review-type" aria-label="评价类型">
+        <option value="">自动判断类型</option><option value="guide">玩法建议</option>
+        <option value="avoid">避雷提醒</option><option value="mixed">优缺点都有</option>
+      </select>
+      <span>提交后会重算口碑卡</span>
+    </div>
+    <textarea id="review-content" maxlength="2000" placeholder="例如：周六 10 点进场，检票排队约 35 分钟；建议先预约，下午人更多。"></textarea>
+    <button class="btn sm primary" onclick="submitReview(${spotId})">提交匿名评价</button>
+  </div>`;
 }
 
 function altHtml(d) {
@@ -683,7 +705,7 @@ function renderDetail() {
   const imgHtml = (d.images && d.images.length)
     ? `<img class="spot-img" src="${esc(mediaUrl(d.images[0]))}" alt="${esc(d.name)}">`
     : `<div class="img-placeholder"><div class="emoji">🏞️</div><div>${esc(d.name)}</div>
-       <div class="note">图片将在小红书采集后展示</div></div>`;
+       <div class="note">图片将在获得授权或由用户投稿后展示</div></div>`;
   pane.innerHTML = `
     <div class="detail-card">
       <div class="back-row"><button class="btn sm" onclick="renderSpots()">← 返回景区列表</button></div>
@@ -701,16 +723,36 @@ function renderDetail() {
       ${d.summary ? summaryHtml(d.summary) : `
         <div class="panel-box"><h4>🤖 暂无 AI 口碑分析</h4>
           <div style="font-size:12px;color:var(--muted);margin-bottom:8px">
-            当前为示例数据阶段,可运行 AI 加工管线(攻略整合 / 暗广过滤 / 避雷共识)生成口碑卡。</div>
+            暂无可用评价证据；你可以提交匿名体验，或由管理员导入已授权资料后生成口碑卡。</div>
           <button class="btn primary sm" id="analyze-btn" onclick="reAnalyze(${d.id})">开始 AI 分析</button>
         </div>`}
       ${altHtml(d)}
-      ${d.notes && d.notes.length ? sampleNotesHtml(d.notes) : ""}
+      ${d.notes && d.notes.length ? evidenceHtml(d.notes) : ""}
+      ${reviewFormHtml(d.id)}
       <div style="margin-top:10px">
         <button class="btn primary" onclick="addToCart(${d.id})">+ 加入想去清单</button>
         ${d.summary ? `<button class="btn" style="margin-left:8px" onclick="reAnalyze(${d.id})">↻ 重新 AI 分析</button>` : ""}
       </div>
     </div>`;
+}
+
+async function submitReview(spotId) {
+  const content = $("#review-content")?.value.trim();
+  const title = $("#review-title")?.value.trim() || "";
+  const noteType = $("#review-type")?.value || "";
+  if (!content || content.length < 5) return flash("请至少写 5 个字的具体体验");
+  try {
+    await api(`/api/spots/${spotId}/reviews`, {
+      method: "POST", body: JSON.stringify({ content, title, note_type: noteType }),
+    });
+    state.detail = await api(`/api/spots/${spotId}`);
+    renderDetail();
+    const sp = state.currentSpots.find((item) => item.id === spotId);
+    if (sp) sp.has_summary = !!state.detail.summary;
+    flash("已匿名收录，并已更新口碑聚合");
+  } catch (e) {
+    flash(e.message.includes("409") ? "这条评价已提交过" : "提交失败，请稍后再试");
+  }
 }
 
 async function reAnalyze(spotId) {
