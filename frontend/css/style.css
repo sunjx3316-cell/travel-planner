@@ -408,6 +408,7 @@ button.btn.sm { padding: 4px 9px; font-size: 12px; }
   margin-bottom: 12px;
 }
 .image-meta { margin: -7px 0 12px; color: var(--muted); font-size: 11px; }
+.fact-source { margin-top: 5px; color: var(--muted); font-size: 11px; }
 
 .panel-box {
   border: 1px solid var(--border);
@@ -526,6 +527,11 @@ button.btn.sm { padding: 4px 9px; font-size: 12px; }
 .workbench-fields { display: grid; grid-template-columns: 92px 1fr; gap: 5px; }
 .workbench-fields .workbench-spot { grid-row: span 2; }
 .workbench-empty { color: var(--muted); font-size: 12px; padding: 6px 0; }
+.final-trip-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; margin-bottom: 10px; }
+.final-trip-head h3 { font-size: 16px; margin: 2px 0; }
+.final-trip-head p, .final-trip-note { color: var(--muted); font-size: 12px; margin: 0; }
+.final-trip-note { border-left: 3px solid var(--accent); padding: 7px 9px; background: #fffbeb; margin-bottom: 10px; }
+.final-day { border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; margin-bottom: 10px; background: var(--bg); }
 .day-block { margin-bottom: 8px; }
 .day-block .day-title { font-size: 12px; font-weight: 700; color: var(--primary); margin-bottom: 4px; }
 .day-note {
@@ -639,6 +645,7 @@ footer {
   .spot-row { align-items: flex-start; }
   .row-btns { flex-wrap: wrap; justify-content: flex-end; }
   .workbench-head { display: block; }
+  .final-trip-head { display: block; }
   .workbench-head-actions { justify-content: flex-start; margin-top: 9px; }
   .workbench-meta { grid-template-columns: 1fr; }
   .workbench-item { grid-template-columns: 24px minmax(0, 1fr) 58px; }

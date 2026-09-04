@@ -45,6 +45,11 @@ def spot_detail(spot_id: int):
             "ORDER BY created_at DESC, id DESC",
             (spot_id,),
         ).fetchall()
+        source_rows = conn.execute(
+            "SELECT provider, payload_json, fetched_at, confidence FROM spot_sources "
+            "WHERE spot_id=? ORDER BY fetched_at DESC, id DESC LIMIT 5",
+            (spot_id,),
+        ).fetchall()
         alts = conn.execute(
             """SELECT a.price_note, a.note, a.downsides_json,
                       s.id AS alt_id, s.name AS alt_name, s.grade AS alt_grade,
@@ -65,6 +70,14 @@ def spot_detail(spot_id: int):
     d["summary"] = _loads(summary["summary_json"]) if summary else None
     # 只返回已核验授权的台账图片；历史笔记图片仅作为兼容补充。
     d["image_assets"] = [dict(item) for item in media]
+    d["fact_sources"] = []
+    for item in source_rows:
+        payload = _loads(item["payload_json"], {}) or {}
+        d["fact_sources"].append({
+            "provider": item["provider"], "rating": payload.get("rating"),
+            "comment_count": payload.get("comment_count"), "fetched_at": item["fetched_at"],
+            "confidence": item["confidence"],
+        })
     images = [item["storage_path"] for item in media]
     for n in notes:
         imgs = _loads(n["images_json"], [])

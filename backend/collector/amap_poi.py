@@ -39,11 +39,16 @@ def _parse_poi(p: dict, keyword: str = "") -> dict | None:
         rating = float(biz.get("rating") or 0) or None
     except (TypeError, ValueError):
         rating = None
+    try:
+        comment_count = int(biz.get("comment_num") or 0) or None
+    except (TypeError, ValueError):
+        comment_count = None
     return {
         "amap_id": str(p.get("id") or p.get("poi_id") or "").strip(),
         "name": name,
         "address": (p.get("address") or "").strip(),
         "rating": rating,
+        "comment_count": comment_count,
         "lng": lng,
         "lat": lat,
         "type": (p.get("type") or "").strip(),
@@ -132,7 +137,7 @@ def import_into_db_stats(conn, city_id: int, pois: list) -> ImportStats:
                  amap_id or None, AMAP_PROVIDER, now, spot_id),
             )
             stats.updated += 1
-        payload = {k: p.get(k) for k in ("amap_id", "name", "address", "type", "typecode", "lng", "lat", "rating", "keyword")}
+        payload = {k: p.get(k) for k in ("amap_id", "name", "address", "type", "typecode", "lng", "lat", "rating", "comment_count", "keyword")}
         conn.execute(
             "INSERT INTO spot_sources(spot_id, provider, external_id, source_url, payload_json, fetched_at, confidence) "
             "VALUES(?,?,?,?,?,?,?) ON CONFLICT(spot_id, provider, external_id) DO UPDATE SET "

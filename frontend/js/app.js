@@ -120,6 +120,7 @@ let spotFilter = "全部";
 let mapLayer = "all";   // all | spot | food
 let lastPlans = [];
 const WORKBENCH_STORAGE_KEY = "travel-planner-workbench-plans-v1";
+const FINAL_PLAN_STORAGE_KEY = "travel-planner-final-plan-v1";
 
 const SPOT_CAT_COLOR = { 自然: "#16a34a", 人文: "#ea580c", 综合: "#2563eb" };
 
@@ -677,6 +678,15 @@ function reviewFormHtml(spotId) {
   </div>`;
 }
 
+function factSourcesHtml(sources) {
+  if (!sources || !sources.length) return "";
+  const latest = sources[0];
+  const provider = ({ amap: "高德 POI", baidu: "百度地图" })[latest.provider] || latest.provider;
+  const rating = latest.rating != null ? `评分 ${latest.rating}` : "已同步基础信息";
+  const comments = latest.comment_count != null ? ` · ${latest.comment_count} 条评价` : "";
+  return `<div class="fact-source">数据证据：${esc(provider)} · ${esc(rating)}${comments} · 更新于 ${esc((latest.fetched_at || "").slice(0, 10))}</div>`;
+}
+
 function altHtml(d) {
   if (!d.alternatives || !d.alternatives.length) return "";
   return `
@@ -708,7 +718,7 @@ function renderDetail() {
     : `<div class="img-placeholder"><div class="emoji">🏞️</div><div>${esc(d.name)}</div>
        <div class="note">图片将在获得授权或由用户投稿后展示</div></div>`;
   const imageMeta = primaryAsset
-    ? `<div class="image-meta">图片来源：${esc(primaryAsset.provider)}${primaryAsset.captured_at ? ` · ${esc(primaryAsset.captured_at)}` : ""} · 已核验</div>`
+    ? `<div class="image-meta">图片来源：${esc(primaryAsset.provider)}${primaryAsset.captured_at ? ` · ${esc(primaryAsset.captured_at)}` : ""} · 已核验${primaryAsset.license_note ? `<br>${esc(primaryAsset.license_note)}` : ""}</div>`
     : "";
   pane.innerHTML = `
     <div class="detail-card">
@@ -721,6 +731,7 @@ function renderDetail() {
             <span class="rating">${stars(d.poi_rating)} ${d.poi_rating || ""}</span></h2>
           <div class="detail-meta">${esc(d.city_name)} · ${esc(d.address || "")} · ${(d.tags || []).join(" / ")}
             ${d.price != null ? ` · <b>${priceText(d.price)}</b>` : ""}</div>
+          ${factSourcesHtml(d.fact_sources)}
         </div>
       </div>
       ${imgHtml}
@@ -1275,6 +1286,52 @@ function savedWorkbenchPlans() {
   } catch (_) { return []; }
 }
 
+function finalPlan() {
+  try {
+    const plan = JSON.parse(localStorage.getItem(FINAL_PLAN_STORAGE_KEY) || "null");
+    return plan && typeof plan === "object" ? plan : null;
+  } catch (_) { return null; }
+}
+
+function setFinalPlan() {
+  const draft = state.workbench?.plan;
+  if (!draft) return;
+  normalizedWorkbenchDays(draft);
+  localStorage.setItem(FINAL_PLAN_STORAGE_KEY, JSON.stringify(clonePlan(draft)));
+  flash("已设为最终行程");
+  renderTrip();
+  switchTab("trip");
+}
+
+function openFinalPlanWorkbench() {
+  const plan = finalPlan();
+  if (!plan) return flash("还没有最终行程");
+  state.workbench = { plan: clonePlan(plan), originalIndex: null };
+  normalizedWorkbenchDays(state.workbench.plan);
+  renderPlanWorkbench();
+  switchTab("plans");
+}
+
+function renderTrip() {
+  const pane = $("#tab-trip");
+  const plan = finalPlan();
+  if (!plan) {
+    pane.innerHTML = `<div class="empty-hint">还没有最终行程。先在“方案”里微调一套方案，再点“设为最终行程”。</div>`;
+    return;
+  }
+  normalizedWorkbenchDays(plan);
+  pane.innerHTML = `
+    <div class="final-trip-head"><div><div class="eyebrow">最终版本</div><h3>${esc(plan.name || "我的行程")}</h3><p>${esc(plan.summary || "已选定的专属行程")}</p></div>
+      <div class="workbench-head-actions"><button class="btn sm accent" onclick="openFinalPlanWorkbench()">🛠 继续微调</button>${plan.route?.length ? '<button class="btn sm primary" onclick="drawRouteOnMap(finalPlan())">🗺 查看路线</button>' : ""}</div></div>
+    <div class="final-trip-note">这是唯一展示的已选方案；修改后再次点“设为最终行程”即可覆盖此版本。</div>
+    ${(plan.daily || []).map((day) => `<section class="final-day"><div class="workbench-day-title">第 ${day.day} 天</div>${day.note ? `<div class="day-note">${esc(day.note)}</div>` : ""}
+      ${(day.items || []).length ? day.items.map((item) => `<div class="item">${item.time ? `<span class="time-chip">🕐${esc(item.time)}</span> ` : ""}${esc(item.spot)}${item.why ? ` <span class="why">— ${esc(item.why)}</span>` : ""}</div>`).join("") : '<div class="workbench-empty">当天未安排景点</div>'}
+      ${day.stay ? `<div class="stay-line">🏨 住：<b>${esc(day.stay.area_label || day.stay.town)}</b> · ${esc(day.stay.price || "")}</div>` : ""}
+      ${day.foods?.dishes?.length ? `<div class="day-food">🍜 必吃：${day.foods.dishes.map((dish) => esc(dish.name)).join("、")}</div>` : ""}
+    </section>`).join("")}
+    ${(plan.tips || []).length ? `<div class="tips"><b>💡 出行提醒</b><br>${plan.tips.map((tip) => esc(tip)).join("<br>")}</div>` : ""}`;
+}
+
 function savePlanWorkbench() {
   const draft = state.workbench?.plan;
   if (!draft) return;
@@ -1317,7 +1374,7 @@ function renderPlanWorkbench() {
   $("#tab-plans").innerHTML = `
     <div class="workbench-head">
       <div><div class="eyebrow">行程工作台</div><h3>把 AI 方案改成你的安排</h3><p>编辑不会重新请求 AI；保存后会留在这台设备。</p></div>
-      <div class="workbench-head-actions"><button class="btn sm" onclick="closePlanWorkbench()">← 返回方案</button><button class="btn sm primary" onclick="savePlanWorkbench()">💾 保存本机版本</button></div>
+      <div class="workbench-head-actions"><button class="btn sm" onclick="closePlanWorkbench()">← 返回方案</button><button class="btn sm primary" onclick="savePlanWorkbench()">💾 保存本机版本</button><button class="btn sm accent" onclick="setFinalPlan()">📌 设为最终行程</button></div>
     </div>
     <div class="workbench-meta">
       <label>方案名<input value="${esc(plan.name || "我的行程")}" onchange="updateWorkbenchMeta('name', this.value)"></label>
@@ -1351,6 +1408,7 @@ document.querySelectorAll(".tabs button").forEach((b) => {
     if (b.dataset.tab === "loops") renderLoops();
     if (b.dataset.tab === "spots" && !state.currentSpots.length && !state.detail) renderSpots();
     if (b.dataset.tab === "plans" && !state.workbench && !lastPlans.length) renderSavedPlanLibrary();
+    if (b.dataset.tab === "trip") renderTrip();
   });
 });
 
