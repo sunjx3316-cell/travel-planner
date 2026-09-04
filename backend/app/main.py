@@ -109,7 +109,7 @@ def status():
 
     return StatusOut(
         llm_available=get_llm().available,
-        data_source="示例数据(待小红书采集)",
+        data_source="本地种子数据 + 高德 POI（评价证据待补充）",
         version=app.version,
     )
 

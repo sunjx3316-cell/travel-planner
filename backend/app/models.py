@@ -25,6 +25,8 @@ class SpotOut(BaseModel):
     grade: Optional[str] = None
     price: Optional[float] = None
     commercial: Optional[dict] = None
+    data_source: Optional[str] = None
+    source_updated_at: Optional[str] = None
     has_summary: bool = False
 
 
@@ -60,6 +62,8 @@ class SpotDetailOut(BaseModel):
     grade: Optional[str] = None
     price: Optional[float] = None
     commercial: Optional[dict] = None
+    data_source: Optional[str] = None
+    source_updated_at: Optional[str] = None
     lng: Optional[float] = None
     lat: Optional[float] = None
     images: List[str] = []

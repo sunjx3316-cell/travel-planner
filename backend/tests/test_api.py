@@ -42,6 +42,7 @@ def test_city_spots():
     assert len(spots) >= 10
     assert any(s["name"] == "故宫博物院" for s in spots)
     assert any(s["grade"] == "5A" for s in spots)   # 5A 徽标数据
+    assert all("data_source" in s and "source_updated_at" in s for s in spots)
 
 
 def test_5a_national_seeded():
