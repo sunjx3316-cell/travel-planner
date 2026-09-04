@@ -8,6 +8,8 @@ const state = {
   currentSpots: [],
   detail: null,
   cart: [],
+  planDays: 3,
+  cityRec: null,
 };
 
 // ---------- 基础工具 ----------
@@ -780,6 +782,9 @@ async function loadCart() {
   $("#cart-count").textContent = state.cart.length;
   // 若用户正停留在省级城市页，购物车变化应同步增删地图亮点。
   if (chart && mapLevel === "province") renderProvinceSpots();
+  // 加入后立刻切到清单时，网络响应可能晚于切换动作；此时主动重绘，
+  // 避免出现“角标已是 1、清单正文仍为空”的瞬时不同步。
+  if ($("#tab-cart")?.classList.contains("active")) renderCart();
 }
 
 async function addToCart(spotId) {
@@ -816,7 +821,7 @@ function renderCart() {
     return;
   }
   const daysSel = `<label>天数</label><select id="days" onchange="syncPlanDays('cart')">${
-    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((d) => `<option value="${d}" ${d === +($("#plan-days") ? $("#plan-days").value : 3) ? "selected" : ""}>${d} 天</option>`).join("")}</select>`;
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((d) => `<option value="${d}" ${d === state.planDays ? "selected" : ""}>${d} 天</option>`).join("")}</select>`;
   const styleSel = `<label>风格</label><select id="style">
     <option>轻松</option><option>紧凑</option><option>亲子</option></select>`;
   const modeToggle = `
@@ -906,10 +911,10 @@ async function generateCityTour() {
     });
   }
   const startCity = ($("#plan-start") && $("#plan-start").value.trim()) || (rec ? rec.start_city : "");
-  // 总天数:优先工作台 #plan-days(始终存在),再退到清单 #days(需打开过清单才渲染)
+  // 总天数只有一个状态，页面上的两个下拉框只是同一个值的两个入口。
   const days = rec
     ? Object.values(rec.city_days).reduce((a, b) => a + b, 0)
-    : +($("#plan-days") ? $("#plan-days").value : ($("#days") ? $("#days").value : 3));
+    : state.planDays;
   const body = {
     spot_ids: ids,
     days,
@@ -959,7 +964,7 @@ function cityPlanWorkspaceHtml() {
       </label>
       <label style="font-size:12px">📅 总天数
         <select id="plan-days" onchange="syncPlanDays('ws')" style="padding:4px 8px;border:1px solid var(--border);border-radius:8px">
-          ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((d) => `<option value="${d}" ${d === +($("#days") ? $("#days").value : 3) ? "selected" : ""}>${d} 天</option>`).join("")}
+          ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((d) => `<option value="${d}" ${d === state.planDays ? "selected" : ""}>${d} 天</option>`).join("")}
         </select>
       </label>
       <button class="btn sm" onclick="getCityRecommend()">🤖 获取推荐(每城几天 · 从哪开始)</button>
@@ -968,14 +973,25 @@ function cityPlanWorkspaceHtml() {
   </div>`;
 }
 
-// 清单 tab「天数」与工作台「总天数」双向同步,避免两个入口天数打架
+// 清单 tab「天数」与工作台「总天数」共享同一个状态。页面切换会重建 DOM，
+// 因此不能只在两个同时存在时互相写值。
 function syncPlanDays(from) {
   const cart = $("#days");
   const ws = $("#plan-days");
-  if (!cart || !ws) return;
-  const v = from === "cart" ? cart.value : ws.value;
-  cart.value = v;
-  ws.value = v;
+  const source = from === "cart" ? cart : ws;
+  if (!source) return;
+  const value = Number(source.value);
+  if (!Number.isInteger(value) || value < 1 || value > 10) return;
+  const changed = state.planDays !== value;
+  state.planDays = value;
+  if (cart) cart.value = String(value);
+  if (ws) ws.value = String(value);
+  // 已得到的“每城几天”推荐依赖总天数；变更后必须作废，避免旧推荐继续参与生成。
+  if (changed && state.cityRec) {
+    state.cityRec = null;
+    const rec = $("#city-rec");
+    if (rec) rec.innerHTML = `<div class="empty-hint">总天数已更新，请重新获取推荐</div>`;
+  }
 }
 
 async function getCityRecommend() {
@@ -985,7 +1001,7 @@ async function getCityRecommend() {
     return;
   }
   const startCity = ($("#plan-start") && $("#plan-start").value.trim()) || "";
-  const total = +($("#plan-days") ? $("#plan-days").value : 4);
+  const total = state.planDays;
   try {
     const rec = await api("/api/plans/cityplan-recommend", {
       method: "POST",
