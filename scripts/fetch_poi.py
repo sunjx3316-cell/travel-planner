@@ -31,7 +31,7 @@ from backend.app.db import get_conn, init_db  # noqa: E402
 from backend.collector.amap_poi import fetch_city_pois, import_into_db_stats  # noqa: E402
 
 PILOT_CITIES = ("北京", "上海", "广州", "成都", "重庆", "西安", "杭州", "三亚", "丽江", "长沙",
-                "厦门", "苏州", "南京", "青岛", "桂林", "张家界", "黄山", "哈尔滨", "大理", "拉萨")
+                "厦门", "苏州", "南京", "青岛", "桂林", "张家界", "黄山市", "哈尔滨", "大理", "拉萨")
 
 
 def main() -> None:
@@ -63,17 +63,19 @@ def main() -> None:
             try:
                 pois = fetch_city_pois(c["name"], args.limit, args.pages)
             except Exception as e:
-                print(f"  ✗ {c['name']}: {e}")
+                # Windows cmd/PowerShell may use a GBK console, which cannot
+                # render glyphs such as ✗/✓. Keep operational output ASCII-safe.
+                print(f"  [ERROR] {c['name']}: {e}")
                 continue
             if args.dry_run:
-                print(f"  · {c['name']}: 候选 {len(pois)} 条 | " + "、".join(p["name"] for p in pois[:5]))
+                print(f"  [DRY RUN] {c['name']}: 候选 {len(pois)} 条 | " + "、".join(p["name"] for p in pois[:5]))
             else:
                 stats = import_into_db_stats(conn, c["id"], pois)
                 conn.commit()
                 total_added += stats.added
                 total_updated += stats.updated
                 total_sources += stats.source_records
-                print(f"  ✓ {c['name']}: 候选 {len(pois)} | 新增 {stats.added} | 更新 {stats.updated} | 来源快照 {stats.source_records}")
+                print(f"  [OK] {c['name']}: 候选 {len(pois)} | 新增 {stats.added} | 更新 {stats.updated} | 来源快照 {stats.source_records}")
             time.sleep(max(0, args.sleep))
         if not args.dry_run:
             print(f"完成: 新增 {total_added}，更新 {total_updated}，写入/刷新来源快照 {total_sources}")
