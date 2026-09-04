@@ -701,11 +701,15 @@ function altHtml(d) {
 
 function renderDetail() {
   const d = state.detail;
+  const primaryAsset = (d.image_assets || [])[0];
   const pane = $("#tab-spots");
   const imgHtml = (d.images && d.images.length)
     ? `<img class="spot-img" src="${esc(mediaUrl(d.images[0]))}" alt="${esc(d.name)}">`
     : `<div class="img-placeholder"><div class="emoji">🏞️</div><div>${esc(d.name)}</div>
        <div class="note">图片将在获得授权或由用户投稿后展示</div></div>`;
+  const imageMeta = primaryAsset
+    ? `<div class="image-meta">图片来源：${esc(primaryAsset.provider)}${primaryAsset.captured_at ? ` · ${esc(primaryAsset.captured_at)}` : ""} · 已核验</div>`
+    : "";
   pane.innerHTML = `
     <div class="detail-card">
       <div class="back-row"><button class="btn sm" onclick="renderSpots()">← 返回景区列表</button></div>
@@ -720,6 +724,7 @@ function renderDetail() {
         </div>
       </div>
       ${imgHtml}
+      ${imageMeta}
       ${d.summary ? summaryHtml(d.summary) : `
         <div class="panel-box"><h4>🤖 暂无 AI 口碑分析</h4>
           <div style="font-size:12px;color:var(--muted);margin-bottom:8px">

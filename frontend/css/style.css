@@ -407,6 +407,7 @@ button.btn.sm { padding: 4px 9px; font-size: 12px; }
   border-radius: var(--radius);
   margin-bottom: 12px;
 }
+.image-meta { margin: -7px 0 12px; color: var(--muted); font-size: 11px; }
 
 .panel-box {
   border: 1px solid var(--border);

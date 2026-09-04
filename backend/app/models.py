@@ -67,6 +67,7 @@ class SpotDetailOut(BaseModel):
     lng: Optional[float] = None
     lat: Optional[float] = None
     images: List[str] = []
+    image_assets: List[dict] = []
     notes: List[dict] = []
     summary: Optional[SummaryCard] = None
     alternatives: List[dict] = []

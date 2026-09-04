@@ -112,6 +112,33 @@ def test_submit_user_review_rebuilds_summary_and_dedupes():
         client.post(f"/api/spots/{spot['id']}/summarize")
 
 
+def test_image_assets_only_return_verified():
+    """待审核图片不应被景点详情 API 发布。"""
+    from backend.app.db import get_conn
+    from backend.collector.media_source import ingest_media
+
+    cities = client.get("/api/cities").json()
+    bj = next(c for c in cities if c["name"] == "北京")
+    spot = next(s for s in client.get(f"/api/cities/{bj['id']}/spots").json()
+                if s["name"] == "故宫博物院")
+    paths = ("images/test-pending.jpg", "images/test-verified.jpg")
+    conn = get_conn()
+    try:
+        ingest_media(spot["id"], {"storage_path": paths[0], "origin_url": "https://example.com/pending",
+                                    "provider": "official", "rights_status": "pending"}, conn=conn)
+        ingest_media(spot["id"], {"storage_path": paths[1], "origin_url": "https://example.com/verified",
+                                    "provider": "official", "rights_status": "verified"}, conn=conn)
+        detail = client.get(f"/api/spots/{spot['id']}").json()
+        assert paths[1] in detail["images"]
+        assert paths[0] not in detail["images"]
+        assert detail["image_assets"][0]["provider"] == "official"
+    finally:
+        conn.execute("DELETE FROM spot_media WHERE spot_id=? AND storage_path IN (?, ?)",
+                     (spot["id"], *paths))
+        conn.commit()
+        conn.close()
+
+
 def test_summarize_creates_consensus():
     """故宫示例笔记 -> mock 管线应产出共识差评(闭馆/排队)"""
     cities = client.get("/api/cities").json()

@@ -60,6 +60,25 @@ CREATE TABLE IF NOT EXISTS notes (
 -- 采集去重:同一来源链接只入库一次
 CREATE UNIQUE INDEX IF NOT EXISTS idx_notes_source ON notes(source_url);
 
+-- 景点图片台账：只向前台发布 rights_status=verified 的媒体。
+-- storage_path 可为本地 images/... 路径，或将来的 COS/CDN 地址；origin_url 保留权利追溯。
+CREATE TABLE IF NOT EXISTS spot_media (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    spot_id INTEGER NOT NULL REFERENCES spots(id) ON DELETE CASCADE,
+    storage_path TEXT NOT NULL,
+    origin_url TEXT NOT NULL,
+    provider TEXT NOT NULL,
+    license_note TEXT,
+    rights_status TEXT NOT NULL DEFAULT 'pending'
+        CHECK(rights_status IN ('pending', 'verified', 'rejected')),
+    captured_at TEXT,
+    created_at TEXT NOT NULL,
+    UNIQUE(spot_id, storage_path)
+);
+
+CREATE INDEX IF NOT EXISTS idx_spot_media_public
+    ON spot_media(spot_id, rights_status, created_at DESC);
+
 CREATE TABLE IF NOT EXISTS spot_summaries (
     spot_id INTEGER PRIMARY KEY REFERENCES spots(id),
     summary_json TEXT,

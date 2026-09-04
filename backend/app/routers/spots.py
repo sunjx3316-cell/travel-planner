@@ -39,6 +39,12 @@ def spot_detail(spot_id: int):
         summary = conn.execute(
             "SELECT summary_json FROM spot_summaries WHERE spot_id=?", (spot_id,)
         ).fetchone()
+        media = conn.execute(
+            "SELECT storage_path, provider, license_note, origin_url, captured_at, created_at "
+            "FROM spot_media WHERE spot_id=? AND rights_status='verified' "
+            "ORDER BY created_at DESC, id DESC",
+            (spot_id,),
+        ).fetchall()
         alts = conn.execute(
             """SELECT a.price_note, a.note, a.downsides_json,
                       s.id AS alt_id, s.name AS alt_name, s.grade AS alt_grade,
@@ -57,8 +63,9 @@ def spot_detail(spot_id: int):
     d["commercial"] = _loads(d.get("commercial")) if d.get("commercial") else None
     d["notes"] = [dict(n) for n in notes]
     d["summary"] = _loads(summary["summary_json"]) if summary else None
-    # 汇总笔记里的图片 CDN 地址(小红书采集后填充)
-    images = []
+    # 只返回已核验授权的台账图片；历史笔记图片仅作为兼容补充。
+    d["image_assets"] = [dict(item) for item in media]
+    images = [item["storage_path"] for item in media]
     for n in notes:
         imgs = _loads(n["images_json"], [])
         if isinstance(imgs, list):
