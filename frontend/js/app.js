@@ -200,9 +200,13 @@ function setMapLayer(layer) {
 }
 
 function renderProvinceSpots() {
+  // 城市选择阶段不铺满全部景点。地图亮点只代表用户已加入清单的项目，
+  // 因此加入/移除清单后地图能立即与计划意图保持一致。
+  const cartIds = new Set(state.cart.map((item) => item.spot_id));
+  const cartSpots = provinceSpots.filter((spot) => cartIds.has(spot.id));
   // 美食街已升级为正式景点(标签含"美食街");图层按标签过滤
-  const streets = provinceSpots.filter((s) => (s.tags || []).includes("美食街"));
-  const scenic = provinceSpots.filter((s) => !(s.tags || []).includes("美食街"));
+  const streets = cartSpots.filter((s) => (s.tags || []).includes("美食街"));
+  const scenic = cartSpots.filter((s) => !(s.tags || []).includes("美食街"));
   let spotList, foodList;
   if (mapLayer === "food") { spotList = []; foodList = streets; }
   else if (mapLayer === "spot") { spotList = scenic; foodList = []; }
@@ -240,13 +244,15 @@ function renderProvinceSpots() {
         p.seriesType === "scatter"
           ? p.data.isStreet
             ? `<b>🏮 ${p.name}</b><br/>${esc(p.data.cityName || "")} · 美食街<br/><span style="font-size:11px">点击查看口碑</span>`
-            : `<b>${p.name}</b><br/>${esc(p.data.category || "")} · ${esc(p.data.cityName || "")}<br/><span style="font-size:11px">点击查看口碑卡</span>`
+            : `<b>${p.name}</b><br/>${esc(p.data.category || "")} · ${esc(p.data.cityName || "")}<br/><span style="font-size:11px">已加入清单 · 点击查看口碑卡</span>`
           : `${p.name}`,
     },
     geo: { map: "province", ...baseGeoOption() },
     series,
   }, true);
-  $("#map-hint").textContent = `${currentProvince} · 🏞景区 ${scenic.length} · 🏮美食街 ${streets.length} · 点击查看详情`;
+  $("#map-hint").textContent = cartSpots.length
+    ? `${currentProvince} · 清单亮点 ${cartSpots.length} 处（🏞 ${scenic.length} · 🏮 ${streets.length}）`
+    : `${currentProvince} · 暂无清单亮点 · 在城市列表加入想去的地点后显示`;
 }
 
 function setSpotFilter(cat) {
@@ -772,6 +778,8 @@ async function addLoopToCart(loopName) {
 async function loadCart() {
   state.cart = await api("/api/cart");
   $("#cart-count").textContent = state.cart.length;
+  // 若用户正停留在省级城市页，购物车变化应同步增删地图亮点。
+  if (chart && mapLevel === "province") renderProvinceSpots();
 }
 
 async function addToCart(spotId) {
