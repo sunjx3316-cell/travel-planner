@@ -474,6 +474,14 @@ button.btn.sm { padding: 4px 9px; font-size: 12px; }
 .review-form-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
 .review-form-row select { width: auto; margin: 0; }
 .review-form-row span { color: var(--muted); font-size: 11px; }
+.operator-import { margin: 10px 0; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 7px 9px; background: #f8fafc; }
+.operator-import summary { cursor: pointer; color: #475569; font-size: 12px; font-weight: 600; }
+.operator-import p { margin: 7px 0; color: var(--muted); font-size: 11px; line-height: 1.55; }
+.operator-import input, .operator-import textarea, .operator-import select { box-sizing: border-box; width: 100%; border: 1px solid var(--border); border-radius: 7px; padding: 6px 8px; font: inherit; margin: 0 0 7px; }
+.operator-import textarea { min-height: 88px; resize: vertical; }
+.operator-row { display: grid; grid-template-columns: 120px 1fr; gap: 6px; }
+.operator-consent { display: block; color: #475569; font-size: 11px; margin: 0 0 8px; }
+.operator-consent input { width: auto; margin: 0 4px 0 0; }
 
 /* cart & plans */
 .cart-row { cursor: default; display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }

@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 """景区详情与 AI 分析触发。"""
 import json
+import hmac
+import os
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Header, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from ...ai.pipeline import summarize_spot
@@ -139,6 +141,30 @@ class ReviewIn(BaseModel):
     note_type: str = ""   # guide/avoid/mixed,空=自动
 
 
+class OperatorReviewImportIn(BaseModel):
+    """运营侧导入已取得授权的外部内容；原文只作为汇总证据，不在前台公开。"""
+    spot_id: int
+    source: str = Field(..., min_length=2, max_length=40)
+    source_url: str = Field(..., min_length=8, max_length=1500)
+    title: str = Field("", max_length=120)
+    content: str = Field(..., min_length=5, max_length=5000)
+    note_type: str = ""
+    rights_confirmed: bool = False
+
+
+def _allow_operator_import(request: Request, token: str | None) -> None:
+    """默认仅本机可导入；云端部署必须配置 ADMIN_IMPORT_TOKEN。"""
+    configured = os.environ.get("ADMIN_IMPORT_TOKEN", "").strip()
+    if configured:
+        if token and hmac.compare_digest(token, configured):
+            return
+        raise HTTPException(401, "运营导入令牌无效")
+    host = (request.client.host if request.client else "") or ""
+    if host in {"127.0.0.1", "::1", "localhost"}:
+        return
+    raise HTTPException(403, "云端导入需配置 ADMIN_IMPORT_TOKEN")
+
+
 @router.post("/spots/{spot_id}/reviews")
 def add_review(spot_id: int, review: ReviewIn):
     """用户提交一条评价 → 自动入库 + 重算该景点 AI 口碑卡。"""
@@ -153,4 +179,25 @@ def add_review(spot_id: int, review: ReviewIn):
         raise HTTPException(400, str(e))
     if result["added"] == 0:
         raise HTTPException(409, "这条内容已提交过(去重)")
+    return {"added": result["added"], "summary_rebuilt": result["summary"]}
+
+
+@router.post("/admin/review-import")
+def operator_import_review(payload: OperatorReviewImportIn, request: Request,
+                           x_admin_import_token: str | None = Header(default=None)):
+    """受限运营入口：导入已获授权的外部评价并立刻重建口碑卡。"""
+    _allow_operator_import(request, x_admin_import_token)
+    if not payload.rights_confirmed:
+        raise HTTPException(422, "请确认已取得内容使用授权")
+    from ...collector import review_source
+
+    try:
+        result = review_source.ingest_items(payload.spot_id, [{
+            "type": payload.note_type, "title": payload.title, "content": payload.content,
+            "source": payload.source, "url": payload.source_url,
+        }])
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    if result["added"] == 0:
+        raise HTTPException(409, "该来源链接或内容已导入")
     return {"added": result["added"], "summary_rebuilt": result["summary"]}

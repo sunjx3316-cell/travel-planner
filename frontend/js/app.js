@@ -15,9 +15,10 @@ const state = {
 
 // ---------- 基础工具 ----------
 async function api(path, opts = {}) {
+  const { headers: extraHeaders, ...fetchOpts } = opts;
   const resp = await fetch(path, {
-    headers: { "Content-Type": "application/json" },
-    ...opts,
+    headers: { "Content-Type": "application/json", ...(extraHeaders || {}) },
+    ...fetchOpts,
   });
   if (!resp.ok) throw new Error(`${path} -> ${resp.status}`);
   return resp.json();
@@ -678,6 +679,20 @@ function reviewFormHtml(spotId) {
   </div>`;
 }
 
+function operatorImportHtml(spotId) {
+  const local = ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
+  if (!local) return "";
+  return `<div class="operator-import"><details>
+    <summary>🛠 本机运营导入：已授权的小红书/攻略内容</summary>
+    <p>仅录入已获作者授权、本人内容或具备明确复用许可的资料；系统不抓取登录态或绕过平台限制。</p>
+    <div class="operator-row"><select id="operator-source"><option value="xhs">小红书</option><option value="manual_authorized">其他授权来源</option></select><input id="operator-url" maxlength="1500" placeholder="来源链接（必填，用于去重追溯）"></div>
+    <input id="operator-title" maxlength="120" placeholder="标题（可选）">
+    <textarea id="operator-content" maxlength="5000" placeholder="粘贴已获授权的攻略/评价正文；尽量保留排队、价格、时间等具体信息。"></textarea>
+    <label class="operator-consent"><input id="operator-rights" type="checkbox"> 我确认已取得该内容的使用授权，或内容由本人提交。</label>
+    <button class="btn sm accent" onclick="submitOperatorImport(${spotId})">导入并重算口碑卡</button>
+  </details></div>`;
+}
+
 function factSourcesHtml(sources) {
   if (!sources || !sources.length) return "";
   const latest = sources[0];
@@ -745,6 +760,7 @@ function renderDetail() {
       ${altHtml(d)}
       ${d.notes && d.notes.length ? evidenceHtml(d.notes) : ""}
       ${reviewFormHtml(d.id)}
+      ${operatorImportHtml(d.id)}
       <div style="margin-top:10px">
         <button class="btn primary" onclick="addToCart(${d.id})">+ 加入想去清单</button>
         ${d.summary ? `<button class="btn" style="margin-left:8px" onclick="reAnalyze(${d.id})">↻ 重新 AI 分析</button>` : ""}
@@ -768,6 +784,26 @@ async function submitReview(spotId) {
     flash("已匿名收录，并已更新口碑聚合");
   } catch (e) {
     flash(e.message.includes("409") ? "这条评价已提交过" : "提交失败，请稍后再试");
+  }
+}
+
+async function submitOperatorImport(spotId) {
+  const source = $("#operator-source")?.value || "xhs";
+  const sourceUrl = $("#operator-url")?.value.trim();
+  const title = $("#operator-title")?.value.trim() || "";
+  const content = $("#operator-content")?.value.trim();
+  const rightsConfirmed = !!$("#operator-rights")?.checked;
+  if (!sourceUrl || !content || !rightsConfirmed) return flash("请填写来源链接、内容并确认授权");
+  try {
+    await api("/api/admin/review-import", { method: "POST", body: JSON.stringify({
+      spot_id: spotId, source, source_url: sourceUrl, title, content,
+      rights_confirmed: rightsConfirmed,
+    }) });
+    state.detail = await api(`/api/spots/${spotId}`);
+    renderDetail();
+    flash("已导入，并已更新口碑卡");
+  } catch (e) {
+    flash(e.message.includes("409") ? "该内容已经导入过" : "导入失败：请确认本机服务与授权信息");
   }
 }
 

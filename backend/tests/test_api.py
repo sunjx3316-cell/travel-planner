@@ -112,6 +112,31 @@ def test_submit_user_review_rebuilds_summary_and_dedupes():
         client.post(f"/api/spots/{spot['id']}/summarize")
 
 
+def test_operator_import_requires_token_or_loopback(monkeypatch):
+    """云端运营导入必须持有令牌；授权内容会由现有管线去重和汇总。"""
+    from backend.app.db import get_conn
+
+    monkeypatch.setenv("ADMIN_IMPORT_TOKEN", "test-import-token")
+    cities = client.get("/api/cities").json()
+    bj = next(c for c in cities if c["name"] == "北京")
+    spot = next(s for s in client.get(f"/api/cities/{bj['id']}/spots").json()
+                if s["name"] == "故宫博物院")
+    body = {"spot_id": spot["id"], "source": "xhs", "source_url": "https://example.test/xhs/1",
+            "title": "授权样例", "content": "上午十点排队约三十分钟，建议提前预约。", "rights_confirmed": True}
+    denied = client.post("/api/admin/review-import", json=body)
+    assert denied.status_code == 401
+    accepted = client.post("/api/admin/review-import", json=body,
+                           headers={"X-Admin-Import-Token": "test-import-token"})
+    assert accepted.status_code == 200 and accepted.json()["added"] == 1
+    conn = get_conn()
+    try:
+        conn.execute("DELETE FROM notes WHERE source_url=?", ("xhs:https://example.test/xhs/1",))
+        conn.commit()
+    finally:
+        conn.close()
+    client.post(f"/api/spots/{spot['id']}/summarize")
+
+
 def test_image_assets_only_return_verified():
     """待审核图片不应被景点详情 API 发布。"""
     from backend.app.db import get_conn
