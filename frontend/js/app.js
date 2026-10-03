@@ -558,7 +558,7 @@ function spotRowHtml(s) {
           <span class="rating">${stars(s.poi_rating)} ${s.poi_rating || ""}</span></div>
         <div class="tags">${(s.tags || []).join(" · ")}</div>
       </div>
-      <span class="badge-sm ${s.has_summary ? "" : "pending"}">${s.has_summary ? "已AI分析" : "待分析"}</span>
+      <span class="badge-sm ${s.review_status === 'summary_ready' || (!s.review_status && s.has_summary) ? "" : "pending"}">${s.review_status ? ({summary_ready: '已有评价', weak_evidence: '证据较少', no_evidence: '待补充'})[s.review_status] : s.has_summary ? "已AI分析" : "待分析"}</span>
       <div class="row-btns">
         <button class="btn sm primary" onclick="openSpot(${s.id})">详情</button>
         <button class="btn sm accent" onclick="addToCart(${s.id})">+想去</button>
@@ -643,6 +643,49 @@ function summaryHtml(s) {
         </div>
       </div>
     </div>`;
+}
+
+function safeSourceUrl(url) {
+  try {
+    const parsed = new URL(url);
+    return ['http:', 'https:'].includes(parsed.protocol) ? parsed.href : '';
+  } catch (_) { return ''; }
+}
+
+function curatedReviewHtml(review) {
+  const sources = review.sources || [];
+  const byId = new Map(sources.map(source => [source.id, source]));
+  const pointHtml = point => {
+    const refs = (point.source_refs || []).map(id => {
+      const url = safeSourceUrl(byId.get(id)?.url);
+      return url ? `<a class="review-ref" href="${esc(url)}" target="_blank" rel="noopener noreferrer" title="查看来源 ${esc(id)}">${esc(id)}</a>` : '';
+    }).join('');
+    return `<li>${esc(point.text)}${refs}${point.qualification ? `<small>${esc(point.qualification)}</small>` : ''}</li>`;
+  };
+  const section = (title, points, empty, primary = false) => {
+    if (!points?.length && !empty) return '';
+    const first = primary ? points.slice(0, 3) : points;
+    return `<section class="review-section"><h4>${title}</h4>${first?.length ? `<ul>${first.map(pointHtml).join('')}</ul>` : `<p class="review-muted">${empty}</p>`}${primary && points.length > 3 ? `<details class="review-more"><summary>展开其余 ${points.length - 3} 条</summary><ul>${points.slice(3).map(pointHtml).join('')}</ul></details>` : ''}</section>`;
+  };
+  const status = ({summary_ready: '体验整理', weak_evidence: '证据较少', no_evidence: '暂无可用评价'})[review.review_status] || '体验整理';
+  const xhsStatus = ({sources_read: '小红书资料已读', unattempted: '小红书尚未检索', access_blocked: '小红书检索受阻', no_usable_evidence: '小红书暂无可用证据', searching: '小红书检索中'})[review.coverage?.xhs_research_status] || '';
+  return `<div class="curated-review"><div class="review-heading"><h3>${status}</h3><span>${sources.length} 条来源记录 · ${esc((review.updated_at || '').slice(0, 10))}</span></div>
+    ${section('值得体验', review.highlights || [], '尚未整理到具体亮点', true)}
+    ${section('出行留意', review.bottom_line_cautions || [], '尚未整理到具体负面，不代表没有风险', true)}
+    <p class="review-muted review-context">来源自述，保留当次条件；历史价格、开放和交通信息请出发前核实。</p>
+    <details class="review-details"><summary>更多体验与条件</summary>
+      ${section('个人偏好', review.preferences || [])}
+      ${section('路线与适用条件', review.practical_conditions || [])}
+      ${section('评论补充', review.comment_insights || [])}
+      ${section('尚未解决的分歧', review.disagreements || [])}
+    </details>
+    <details class="review-details"><summary>查看来源与整理进度</summary>
+      <p class="review-muted">${esc(xhsStatus)} · 整理仍在进行，同一链接可包含不同作者记录。</p>
+      ${sources.map(source => {
+        const url = safeSourceUrl(source.url);
+        return `<div class="review-source-row"><div>${esc(source.id)} · ${esc(source.platform || '')} · ${url ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(source.title || '打开来源')}</a>` : esc(source.title || '未提供链接')}</div><small>${esc(source.author || '作者未记录')} · 原显示日期 ${esc(source.visible_date || '未知')} · 读取 ${esc(source.observed_at || '未知')}</small>${source.visit_context ? `<p>${esc(source.visit_context)}</p>` : ''}${source.promotion_caveat ? `<small>${esc(source.promotion_caveat)}</small>` : ''}</div>`;
+      }).join('')}
+    </details></div>`;
 }
 
 function evidenceSourceLabel(note) {
@@ -749,21 +792,21 @@ function renderDetail() {
           ${factSourcesHtml(d.fact_sources)}
         </div>
       </div>
-      ${imgHtml}
+      ${d.curated_review && !d.images?.length ? '' : imgHtml}
       ${imageMeta}
-      ${d.summary ? summaryHtml(d.summary) : `
+      ${d.curated_review ? curatedReviewHtml(d.curated_review) : d.summary ? summaryHtml(d.summary) : `
         <div class="panel-box"><h4>🤖 暂无 AI 口碑分析</h4>
           <div style="font-size:12px;color:var(--muted);margin-bottom:8px">
             暂无可用评价证据；你可以提交匿名体验，或由管理员导入已授权资料后生成口碑卡。</div>
           <button class="btn primary sm" id="analyze-btn" onclick="reAnalyze(${d.id})">开始 AI 分析</button>
         </div>`}
       ${altHtml(d)}
-      ${d.notes && d.notes.length ? evidenceHtml(d.notes) : ""}
-      ${reviewFormHtml(d.id)}
+      ${!d.curated_review && d.notes && d.notes.length ? evidenceHtml(d.notes) : ""}
+      <details class="review-details"><summary>补充我的体验</summary>${reviewFormHtml(d.id)}</details>
       ${operatorImportHtml(d.id)}
       <div style="margin-top:10px">
         <button class="btn primary" onclick="addToCart(${d.id})">+ 加入想去清单</button>
-        ${d.summary ? `<button class="btn" style="margin-left:8px" onclick="reAnalyze(${d.id})">↻ 重新 AI 分析</button>` : ""}
+        ${!d.curated_review && d.summary ? `<button class="btn" style="margin-left:8px" onclick="reAnalyze(${d.id})">↻ 重新 AI 分析</button>` : ""}
       </div>
     </div>`;
 }

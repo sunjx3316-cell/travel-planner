@@ -28,6 +28,7 @@ class SpotOut(BaseModel):
     data_source: Optional[str] = None
     source_updated_at: Optional[str] = None
     has_summary: bool = False
+    review_status: Optional[str] = None
 
 
 class AvoidPoint(BaseModel):
@@ -71,6 +72,7 @@ class SpotDetailOut(BaseModel):
     fact_sources: List[dict] = []
     notes: List[dict] = []
     summary: Optional[SummaryCard] = None
+    curated_review: Optional[dict] = None
     alternatives: List[dict] = []
 
 

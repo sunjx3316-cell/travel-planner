@@ -41,6 +41,10 @@ def spot_detail(spot_id: int):
         summary = conn.execute(
             "SELECT summary_json FROM spot_summaries WHERE spot_id=?", (spot_id,)
         ).fetchone()
+        curated = conn.execute(
+            "SELECT payload_json,dataset_updated_at FROM curated_reviews WHERE spot_id=? "
+            "ORDER BY dataset_updated_at DESC LIMIT 1", (spot_id,),
+        ).fetchone()
         media = conn.execute(
             "SELECT storage_path, provider, license_note, origin_url, captured_at, created_at "
             "FROM spot_media WHERE spot_id=? AND rights_status='verified' "
@@ -70,6 +74,9 @@ def spot_detail(spot_id: int):
     d["commercial"] = _loads(d.get("commercial")) if d.get("commercial") else None
     d["notes"] = [dict(n) for n in notes]
     d["summary"] = _loads(summary["summary_json"]) if summary else None
+    d["curated_review"] = _loads(curated["payload_json"]) if curated else None
+    if d["curated_review"] is not None:
+        d["curated_review"]["updated_at"] = curated["dataset_updated_at"]
     # 只返回已核验授权的台账图片；历史笔记图片仅作为兼容补充。
     d["image_assets"] = [dict(item) for item in media]
     d["fact_sources"] = []

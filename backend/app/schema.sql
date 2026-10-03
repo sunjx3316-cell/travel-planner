@@ -1,5 +1,18 @@
 PRAGMA foreign_keys = ON;
 
+CREATE TABLE IF NOT EXISTS curated_reviews (
+    catalog_key TEXT PRIMARY KEY,
+    spot_id INTEGER REFERENCES spots(id),
+    city TEXT NOT NULL,
+    name TEXT NOT NULL,
+    review_status TEXT NOT NULL,
+    payload_json TEXT NOT NULL,
+    dataset_updated_at TEXT,
+    imported_at TEXT NOT NULL,
+    archive_hash TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_curated_reviews_spot ON curated_reviews(spot_id);
+
 CREATE TABLE IF NOT EXISTS cities (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,

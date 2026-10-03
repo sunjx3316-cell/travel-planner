@@ -31,7 +31,9 @@ def city_spots(city_id: int):
             raise HTTPException(404, "城市不存在")
         rows = conn.execute(
             """SELECT s.*, c.name AS city_name,
-                      (SELECT 1 FROM spot_summaries ss WHERE ss.spot_id = s.id) AS has_summary
+                      (SELECT 1 FROM spot_summaries ss WHERE ss.spot_id = s.id) AS has_summary,
+                      (SELECT cr.review_status FROM curated_reviews cr WHERE cr.spot_id=s.id
+                       ORDER BY cr.dataset_updated_at DESC LIMIT 1) AS review_status
                FROM spots s JOIN cities c ON c.id = s.city_id
                WHERE s.city_id = ?
                ORDER BY s.poi_rating DESC, s.id""",

@@ -23,5 +23,7 @@ photo/
 node_err.txt
 data/*.bak
 data/debug/
+data/review-import-report*.json
+data/review-imports/
 data/test_collector_tmp/
 scripts/_tmp_*.py

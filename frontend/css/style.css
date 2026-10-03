@@ -409,6 +409,24 @@ button.btn.sm { padding: 4px 9px; font-size: 12px; }
 }
 .image-meta { margin: -7px 0 12px; color: var(--muted); font-size: 11px; }
 .fact-source { margin-top: 5px; color: var(--muted); font-size: 11px; }
+.curated-review { margin: 14px 0; }
+.review-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 14px; }
+.review-heading h3 { font-size: 15px; }
+.review-heading span, .review-muted { color: var(--muted); font-size: 11px; line-height: 1.65; }
+.review-section { margin: 0 0 16px; }
+.review-section h4 { color: var(--primary-dark); font-size: 13px; margin-bottom: 6px; }
+.review-section ul { list-style: none; padding: 0; }
+.review-section li { font-size: 13px; line-height: 1.75; margin: 0 0 7px; color: #374151; }
+.review-section li small { display: block; color: var(--muted); font-size: 11px; }
+.review-ref { color: var(--primary); font-size: 10px; text-decoration: none; margin-left: 5px; vertical-align: super; }
+.review-context { margin: 4px 0 12px; }
+.review-details { border-top: 1px solid var(--border); padding: 10px 0; }
+.review-details > summary, .review-more > summary { color: var(--muted); font-size: 12px; cursor: pointer; }
+.review-details[open] > summary { margin-bottom: 12px; }
+.review-source-row { padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 12px; line-height: 1.6; }
+.review-source-row small, .review-source-row p { color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+.review-source-row a { color: var(--primary); }
+.review-more ul { margin-top: 7px; }
 
 .panel-box {
   border: 1px solid var(--border);
