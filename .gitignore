@@ -25,5 +25,7 @@ data/*.bak
 data/debug/
 data/review-import-report*.json
 data/review-imports/
+data/photo-imports/
+data/photo-import-report*.json
 data/test_collector_tmp/
 scripts/_tmp_*.py

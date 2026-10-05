@@ -1,9 +1,9 @@
-const CACHE_NAME = "travel-planner-shell-v0.3.1";
+const CACHE_NAME = "travel-planner-shell-v0.3.2";
 const APP_SHELL = [
   "/",
   "/index.html",
   "/css/style.css",
-  "/js/app.js?v=0.3.1",
+  "/js/app.js?v=0.3.2",
   "/site.webmanifest",
   "/assets/app-icon.svg",
   "/assets/echarts.min.js",
