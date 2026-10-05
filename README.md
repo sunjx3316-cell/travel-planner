@@ -15,6 +15,8 @@
   **20 组平替**(迪士尼→欢乐谷、莫高窟→榆林窟、黄河九曲第一湾→杂威冻列/索克藏寺等),
   每条如实标注缺点,可查看/改选平替,**支持「🗺 地图对比」(主景点+平替同图标注)
 - 🛒 **想去清单**:购物车式管理,按城市分组,可清空
+- **行程工作坊**：生成方案后按天切换，点选一项才展开编辑；支持时间/备注调整、清单地点替换、跨天移动、自由安排、撤销和本机草稿恢复。只做本地规则检查，不会因为编辑重复调用 AI。手动调整后撤下旧路线、住宿及交通推算，避免显示过期结果。
+- **最终行程与 PDF**：确认后在“我的行程”展示唯一版本，可继续编辑或直接下载中文 A4 PDF，也保留打印另存入口。草稿和最终行程仅存当前浏览器；PDF 在本机服务内存中生成，不写入数据库或上传到第三方。
 - 🏙 **城市模式**:城市 tab 顶部即**规划工作台** —— 选城市 → 加想玩的 →
   **出发地 + 总天数 → 「🤖 获取推荐」**:算法按可玩项目数分配**每城玩几天**、
   依据出发地便利推荐**起始城市**(出发地不在行程内时自动取最近的城)并给出**城市游玩顺序**;
@@ -171,7 +173,9 @@ powershell -File scripts\ocr.ps1 <图片路径>                # 英文 OCR(Wind
 ## 测试
 
 ```powershell
-.venv\Scripts\python.exe -m pytest              # 91 个用例:管线/LLM 集成/API 集成测试
+.venv\Scripts\python.exe -m pip install -r backend\requirements-dev.txt
+.venv\Scripts\python.exe -m pytest backend/tests # 管线/LLM/API/PDF 集成测试
+node scripts/test_workshop.cjs                   # 离线工作坊编辑与草稿测试
 .venv\Scripts\python.exe scripts\smoke_test.py  # 端到端冒烟(需服务已启动)
 .venv\Scripts\python.exe scripts\e2e_check.py   # 真实浏览器 e2e(需 chromium,见下)
 ```

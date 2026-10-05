@@ -553,6 +553,75 @@ button.btn.sm { padding: 4px 9px; font-size: 12px; }
 .workbench-fields { display: grid; grid-template-columns: 92px 1fr; gap: 5px; }
 .workbench-fields .workbench-spot { grid-row: span 2; }
 .workbench-empty { color: var(--muted); font-size: 12px; padding: 6px 0; }
+
+/* One day and one editor at a time, rather than a wall of forms. */
+.workshop { font-size: 13px; }
+.plan-preview { margin-top: 12px; }
+.plan-preview > summary { cursor: pointer; font-size: 12px; color: var(--muted); }
+.workshop-header { display: flex; align-items: center; gap: 10px; padding-bottom: 14px; }
+.workshop-header > div { flex: 1; min-width: 0; }
+.workshop-header h3 { margin: 3px 0; font-size: 19px; overflow-wrap: anywhere; }
+.workshop-header small, .workshop-subtle { color: var(--muted); font-size: 11px; line-height: 1.7; }
+.workshop-back { border: 1px solid var(--border); border-radius: 50%; background: white; width: 32px; height: 32px; cursor: pointer; flex-shrink: 0; }
+.workshop-overview { display: flex; align-items: center; justify-content: space-between; color: var(--muted); font-size: 12px; margin-bottom: 12px; }
+.workshop-day-tabs { display: flex; overflow-x: auto; gap: 6px; padding-bottom: 12px; scrollbar-width: thin; }
+.workshop-day-tabs button { flex-shrink: 0; padding: 9px 13px; border: 1px solid var(--border); border-radius: 9px; background: #fff; color: #52635d; cursor: pointer; }
+.workshop-day-tabs button.selected { background: var(--primary-dark); border-color: var(--primary-dark); color: #fff; }
+.workshop-day-tabs small { display: block; margin-top: 3px; font-size: 10px; opacity: .75; }
+.workshop-day-head, .workshop-editor-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 10px 0; }
+.workshop-day-head h4 { margin: 0; font-size: 13px; }
+.workshop-text-btn { border: 0; background: none; color: var(--primary-dark); font: inherit; padding: 5px 0; cursor: pointer; }
+.workshop-text-btn.danger { color: var(--danger); margin-left: auto; }
+.workshop-timeline { display: grid; gap: 0; }
+.workshop-stop { display: grid; grid-template-columns: 90px minmax(0, 1fr) 28px; align-items: center; gap: 10px; width: 100%; padding: 14px 8px; background: white; border: 0; border-bottom: 1px solid #eef1f0; text-align: left; cursor: pointer; font: inherit; border-radius: 6px; }
+.workshop-stop.selected { background: #edf7f3; }
+.workshop-stop:hover { background: #f5faf8; }
+.workshop-time { font-size: 11px; color: var(--primary-dark); overflow-wrap: anywhere; }
+.workshop-stop b { display: block; font-size: 13px; color: #25362e; overflow-wrap: anywhere; }
+.workshop-stop small { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; color: var(--muted); margin-top: 4px; font-size: 11px; }
+.workshop-edit-mark { font-size: 10px; color: #70877a; }
+.workshop-empty-day { padding: 28px 12px; background: #f8faf9; border-radius: 10px; color: var(--muted); line-height: 1.8; }
+.workshop-inspector { padding: 12px; margin-top: 10px; background: #f5faf8; border-radius: 10px; border: 1px solid #dceae3; }
+.workshop-inspector > label, .workshop-settings > label { display: grid; gap: 4px; font-size: 11px; color: var(--muted); margin: 8px 0; }
+.workshop input, .workshop select, .workshop textarea { width: 100%; min-width: 0; background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 8px; font: inherit; color: #283d32; }
+.workshop textarea { min-height: 70px; resize: vertical; }
+.workshop-editor-title { margin-top: 0; font-weight: 600; }
+.workshop-editor-tools { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; margin-top: 10px; }
+.workshop-editor-tools label { display: flex; align-items: center; gap: 5px; font-size: 11px; }
+.workshop-editor-tools select { width: auto; padding: 6px; }
+.workshop-inspector details { margin-top: 10px; font-size: 11px; }
+.workshop-inspector details select { margin-top: 8px; }
+.workshop-add { display: flex; gap: 7px; margin: 14px 0; }
+.workshop-add select { flex: 1; }
+.workshop-add button { flex-shrink: 0; }
+.workshop-checks, .workshop-settings { padding: 12px 0; border-top: 1px solid var(--border); margin-top: 10px; }
+.workshop-checks summary, .workshop-settings summary, .workshop-inspector summary { cursor: pointer; color: #52635d; font-size: 12px; }
+.workshop-checks p { background: #fff7e8; padding: 8px 10px; border-radius: 6px; color: #88622d; font-size: 12px; }
+.workshop-checks small { display: block; color: var(--muted); font-size: 10px; line-height: 1.8; margin-top: 8px; }
+.workshop-review-note { padding: 10px; border-radius: 8px; background: #fff7e8; color: #88622d; font-size: 12px; margin-bottom: 12px; }
+.workshop-resume { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px; background: #edf7f3; border-radius: 8px; margin-bottom: 14px; font-size: 12px; }
+.workshop button:focus-visible { outline: 2px solid var(--primary-dark); outline-offset: 2px; }
+.workshop button:disabled { opacity: .4; cursor: not-allowed; }
+#trip-print { display: none; }
+@media (max-width: 420px) {
+  .workshop-header h3 { font-size: 16px; }
+  .workshop-stop { grid-template-columns: 72px minmax(0, 1fr) 25px; gap: 7px; }
+}
+@media print {
+  @page { size: A4; margin: 17mm 16mm; }
+  body > :not(#trip-print) { display: none !important; }
+  html, body { display: block !important; height: auto !important; overflow: visible !important; background: white !important; margin: 0 !important; }
+  #trip-print { display: block !important; color: #1f2933; font-family: "Microsoft YaHei", "PingFang SC", sans-serif; font-size: 10pt; line-height: 1.65; }
+  #trip-print header { display: block; background: white; color: #1f2933; padding: 0 0 6mm; border: 0; border-bottom: 1px solid #b8c7be; }
+  #trip-print header div, #trip-print small { color: #607269; font-size: 9pt; }
+  #trip-print h1 { font-size: 22pt; margin: 2mm 0; }
+  #trip-print h2 { font-size: 13pt; margin: 6mm 0 3mm; break-after: avoid; }
+  #trip-print p { margin: 2mm 0; overflow-wrap: anywhere; }
+  #trip-print .trip-print-item { display: grid; grid-template-columns: 30mm minmax(0, 1fr); gap: 4mm; padding: 3mm 0; border-bottom: 1px solid #e2e8e4; break-inside: avoid; }
+  #trip-print .trip-print-item > span { color: #53685b; font-size: 9pt; }
+  #trip-print footer { display: block; background: white; padding: 5mm 0 0; text-align: left; color: #607269; font-size: 8pt; border-top: 1px solid #d8e0da; margin-top: 6mm; }
+  #trip-print .trip-print-note { font-size: 9pt; color: #806528; }
+}
 .final-trip-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; margin-bottom: 10px; }
 .final-trip-head h3 { font-size: 16px; margin: 2px 0; }
 .final-trip-head p, .final-trip-note { color: var(--muted); font-size: 12px; margin: 0; }

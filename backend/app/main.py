@@ -95,12 +95,13 @@ async def protect_public_api(request: Request, call_next):
 
 init_db()
 
-from .routers import cart, cities, plans, spots  # noqa: E402
+from .routers import cart, cities, plans, spots, export  # noqa: E402
 
 app.include_router(cities.router)
 app.include_router(spots.router)
 app.include_router(cart.router)
 app.include_router(plans.router)
+app.include_router(export.router)
 
 
 @app.get("/api/status", response_model=StatusOut)
