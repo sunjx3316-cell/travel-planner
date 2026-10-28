@@ -1,6 +1,6 @@
 # 旅行智规 Travel Planner
 
-## v1.1.0 源码更新：两种规划模式
+## v1.1.0：两种规划模式
 
 首次打开先选择 **本地规划** 或 **AI 增强**，之后从顶部模式按钮切换；两者共用资料、清单、工作坊与最终行程，不创建两套重复页面。
 
@@ -14,19 +14,19 @@
 
 回归命令：`python -m pytest backend/tests -q`；`node scripts/test_workshop.cjs`、`node scripts/test_map.cjs`、`node scripts/test_planning_preferences.cjs`。新增模式安全测试及单城、多城、甘南环线、亲子／紧凑／轻松的时间预算测试。
 
-本节功能已包含在 v1.1.0 源码中。下方的 **v1.0.1 仍是已有的免安装 Release**，不包含本次双模式和算法更新；本次仅更新源码，未重新发布下载包。体验新功能请使用最新源码或本机已更新的程序。
+本节功能包含在 v1.1.0 源码和 Windows 免安装 Release 中。下载包内置运行环境、评价资料及图片，不包含开发者的 API Key、个人清单或已保存方案。
 
-## v1.0.1 快速使用（2026-10-28）
+## v1.1.0 快速使用（2026-10-28）
 
-Windows 用户从 [Releases](https://github.com/sunjx3316-cell/travel-planner/releases/latest) 下载 `travel-planner-1.0.1-windows-x64.zip`，**完整解压**后双击 `start.bat`，访问 http://127.0.0.1:8000/ 。无需安装 Python，无需填写 Key。关闭启动窗口停止服务。端口占用时先关闭旧版，勿同时启动两个实例。
+Windows 用户从 [Releases](https://github.com/sunjx3316-cell/travel-planner/releases/latest) 下载 `travel-planner-1.1.0-windows-x64.zip`，**完整解压**后双击 `start.bat`，访问 http://127.0.0.1:8000/ 。首次进入选择本地规划或 AI 增强；本地规划无需安装 Python、无需填写 Key。关闭启动窗口停止服务。端口占用时先关闭旧版，勿同时启动两个实例。
 
 同 Wi-Fi 手机体验可运行 `start-lan.bat`，仅在可信局域网放行防火墙；默认启动不会开放局域网。请勿直接将本地单用户版本暴露公网。
 
 顶部 **铁路** 可单独查询；**方案 → 选择铁路** 或 **工作坊 → 铁路交通** 把完整路线加入当前草稿；点 **确认行程** 后，在 **我的行程** 查看并导出日历式 PDF（含铁路页）。独立交通清单不会自动混入最终方案，可从工作坊手动选用。铁路按实际出发日期保存，不会自动压缩景点安排或推算每天交通冲突。
 
-发行版包含 `bundled_data/manifest.json` 中列出的全部评价目录和已核验图片台账，图片署名与来源保留；弱证据不是已证实共识。无网络也可查看内置资料、编辑、用规则生成方案和导出 PDF；AI 实时生成、在线票价核验及未缓存的省级地图等在线能力需要网络。铁路是静态时刻快照，不是实时售票或余票保证。
+发行版包含 `bundled_data/manifest.json` 中列出的全部评价目录和已核验图片台账，图片署名与来源保留；弱证据不是已证实共识。无网络也可查看内置资料、编辑、用规则生成方案和导出 PDF；AI 增强、在线票价核验和外部来源链接需要网络。铁路是静态时刻快照，不是实时售票或余票保证。
 
-源码部署（Python 3.13）：`python -m venv .venv`，安装 `pip install -r backend/requirements.txt`，然后 `python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000`。首次启动自动从随仓库附带的只读资料创建 `data/travel.db`，不会覆盖已有库。个人清单、保存方案及密钥不会随发行版分发。可选 API Key 请自行复制 `.env.example` 为 `.env` 后配置。
+源码部署（Python 3.13）：`python -m venv .venv`，安装 `pip install -r backend/requirements.txt`，然后 `python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000`。首次启动自动从随仓库附带的只读资料创建 `data/travel.db`，不会覆盖已有库。个人清单、保存方案及密钥不会随发行版分发。可选 DeepSeek Key 可在本机模式设置窗口填写；仍兼容自行复制 `.env.example` 为 `.env` 后配置。
 
 开发者打包使用 `python scripts/build_release.py --runtime <已安装后端依赖的嵌入式Python目录>`，生成全新目录与 SHA-256 校验文件，不覆盖运行中的旧版。`scripts/build_portable.py` 是旧版构建脚本，不用于本次发行。
 
