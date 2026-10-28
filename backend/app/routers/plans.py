@@ -2,6 +2,7 @@
 """行程方案生成:LLM 优先(多套方案),无 key 时走确定性 mock 规划器。"""
 import json
 import math
+from copy import deepcopy
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException
@@ -20,6 +21,46 @@ STYLE_DESC = {
     "紧凑": "每天3-4个景点,效率优先,适合体力好的人",
     "亲子": "每天2个景点,避开高强度项目,节奏适中",
 }
+
+
+def _local_generation():
+    return {"state": "local", "message": "本地规划 · 路线与时间为规则估算，未调用 AI"}
+
+
+def _fallback_generation():
+    from ...ai.settings import get_settings
+    last = get_settings().public().get("last_call") or {}
+    message = last.get("message", "AI 内容不可用") if last.get("state") == "failed" else "AI 内容未通过方案校验"
+    return {"state": "fallback", "message": f"已回退本地规划 · {message}；本次未采用 AI 内容"}
+
+
+def _polish_plans(plans, raw):
+    """Validate and merge on a copy; malformed/partial AI output cannot corrupt a route."""
+    if not isinstance(raw, list):
+        raise ValueError("Invalid plans")
+    merged = deepcopy(plans)
+    applied = 0
+    for index, proposal in enumerate(raw[:len(plans)]):
+        if not isinstance(proposal, dict) or not isinstance(proposal.get("name"), str) or not proposal["name"].strip():
+            continue
+        base = merged[index]
+        base["name"] = proposal["name"][:120]
+        if isinstance(proposal.get("summary"), str):
+            base["summary"] = proposal["summary"][:1200]
+        if isinstance(proposal.get("tips"), list):
+            base["tips"] = list(dict.fromkeys(base.get("tips", []) + [t[:500] for t in proposal["tips"] if isinstance(t, str)]))[:9]
+        notes = proposal.get("day_notes")
+        if isinstance(notes, dict):
+            for day in base.get("daily", []):
+                note = notes.get(str(day["day"]))
+                if isinstance(note, str) and note.strip():
+                    day["note"] = "；".join(x for x in (day.get("note", ""), note[:500]) if x)
+        base["generation"] = {"state": "ai", "message": "AI 已参与 · DeepSeek 补充说明与提醒；路线和时间仍为本地估算"}
+        base["source"] = "DeepSeek 辅助 + 本地规划"
+        applied += 1
+    if not applied:
+        raise ValueError("No usable plans")
+    return merged
 
 
 def _load_context(city_id: int, spot_ids: list):
@@ -210,16 +251,23 @@ def generate_plan(req: PlanGenerateRequest):
     if not spots:
         raise HTTPException(400, "清单中没有有效景区")
 
+    generation = _local_generation()
     if get_llm().available:
         try:
             plans = llm_plans(city, spots, req.days, req.style)
             source = "DeepSeek"
+            generation = {"state": "ai", "message": "AI 已参与 · DeepSeek 生成安排，开放时间与交通仍需核实"}
         except Exception:
             plans = mock_plans(city, spots, req.days, req.style)
-            source = "启发式 mock(LLM 失败降级)"
+            source = "本地规划（AI 失败回退）"
+            generation = _fallback_generation()
     else:
         plans = mock_plans(city, spots, req.days, req.style)
-        source = "启发式 mock(未配置 DEEPSEEK_API_KEY)"
+        source = "本地规则规划"
+
+    for plan in plans:
+        plan["generation"] = generation if plan.get("source") != "启发式补齐(LLM 方案不足)" else {
+            "state": "local", "message": "本地补齐 · AI 未提供足够有效方案"}
 
     plan_json = {"source": source, "city": city["name"], "days": req.days,
                  "style": req.style, "plans": plans}
@@ -380,7 +428,7 @@ def _compose_city_days(city_spots: list, cd: int, center: tuple, variant: str = 
             overflow.append(b)
             continue
         day = [b]
-        f = nearest_fun(day, FUN_CAP_KM) or nearest_fun(day)
+        f = nearest_fun(day, FUN_CAP_KM)
         if f:
             day.append(f)
             used_fun.add(id(f))
@@ -419,7 +467,7 @@ def _compose_city_days(city_spots: list, cd: int, center: tuple, variant: str = 
                 if alt is not None:
                     small.remove(alt)
             day.append(nxt)
-        f = nearest_fun(day, FUN_CAP_KM) or nearest_fun(day)
+        f = nearest_fun(day, FUN_CAP_KM)
         if f:
             day.append(f)
             used_fun.add(id(f))
@@ -430,7 +478,8 @@ def _compose_city_days(city_spots: list, cd: int, center: tuple, variant: str = 
     for f in fun:
         if id(f) in used_fun:
             continue
-        target = next((d for d in chunks if d and not has_fun(d)), None)
+        target = next((d for d in chunks if d and not has_fun(d)
+                       and min(_haversine_km(f, s) for s in d) <= FUN_CAP_KM), None)
         if target:
             target.append(f)
             used_fun.add(id(f))
@@ -451,7 +500,7 @@ def _compose_city_days(city_spots: list, cd: int, center: tuple, variant: str = 
             final.append(d)
             flags.append(False)
             cnt += 1
-            if cnt >= 2 and len(final) < cd:
+            if cnt >= 2 and len(final) + (len(chunks) - sum(not flag for flag in flags)) < cd:
                 final.append([])
                 flags.append(True)
                 cnt = 0
@@ -476,20 +525,6 @@ def _build_city_plan(name: str, summary: str, order: list, groups: dict, days: i
     from ..schedule import (AFTERNOON, EVENING, SLOT_ORDER, SUNSET, recommend_time)
 
     legs = _route_legs(order)
-    if close_loop and len(order) >= 2:
-        last = order[-1]
-        first = order[0]
-        if last.get("id") != -1 or first.get("id") == -1:  # 回程到出发地/首城
-            km = _haversine_km(last, first) * ROAD_FACTOR
-            legs.append({
-                "from": last["name"], "from_city": last["city_name"],
-                "to": first["name"], "to_city": first["city_name"],
-                "from_lng": last["lng"], "from_lat": last["lat"],
-                "to_lng": first["lng"], "to_lat": first["lat"],
-                "km": round(km), "hours": round(km / HIGHWAY_KMH, 1),
-                "closing": True,
-                "transport": _transport_leg(last, first),
-            })
     total_km = sum(l["km"] for l in legs)
 
     cities = [n for n in order if n.get("id") != -1]
@@ -498,7 +533,7 @@ def _build_city_plan(name: str, summary: str, order: list, groups: dict, days: i
     dep_node = next((n for n in order if n.get("id") == -1), None)
     if dep_node is None and cities:
         dep_node = cities[0]
-    if dep_node is not None and cities and dep_node is not cities[-1]:
+    if close_loop and dep_node is not None and cities and dep_node is not cities[-1]:
         last_city = cities[-1]
         straight = _haversine_km(last_city, dep_node)
         km = straight * ROAD_FACTOR
@@ -538,7 +573,7 @@ def _build_city_plan(name: str, summary: str, order: list, groups: dict, days: i
         needs[cname] = big_n + small_n * 0.5
     if city_days:
         # 用户/推荐给了每城天数:只保留行程内的城市;总和不足总天数时补足(多余天给项目多的城)
-        city_days = {k: max(1, int(v or 1)) for k, v in city_days.items() if k in counts}
+        city_days = {city: max(1, int(city_days.get(city, 1))) for city in counts}
         diff = days - sum(city_days.values())
         while diff > 0:
             c = max(city_days, key=lambda x: (counts.get(x, 0), city_days[x]))
@@ -575,6 +610,17 @@ def _build_city_plan(name: str, summary: str, order: list, groups: dict, days: i
             # 末城有返程时,最后一天留给返程(大项目不排最后一天)
             reserve = (cn is cities[-1]) and return_leg and return_leg.get("travel_h", 0) >= 1.5
             comp_cache[key] = _compose_city_days(city_spots, cd, centers.get(city_name), variant, reserve)
+            # If arrival consumes the morning, move a full-day excursion to a later day
+            # and use a flexible half-day visit on arrival instead of dropping it blindly.
+            cached_chunks, _, cached_rest = comp_cache[key]
+            if (incoming.get(city_name) or 0) >= 3 and cached_chunks and any(
+                    _classify_spot(s, centers.get(city_name)) == "big" for s in cached_chunks[0]):
+                swap = next((i for i in range(1, len(cached_chunks)) if cached_chunks[i]
+                             and not (reserve and i == cd - 1)
+                             and all(_classify_spot(s, centers.get(city_name)) != "big" for s in cached_chunks[i])), None)
+                if swap is not None:
+                    cached_chunks[0], cached_chunks[swap] = cached_chunks[swap], cached_chunks[0]
+                    cached_rest[0], cached_rest[swap] = cached_rest[swap], cached_rest[0]
             # 溢出只在城市第一次进入时累计一次(缓存去重)
             overflow_warn += [s for s in comp_cache[key][1]
                               if _classify_spot(s, centers.get(city_name)) != "fun"]
@@ -680,7 +726,7 @@ def _build_city_plan(name: str, summary: str, order: list, groups: dict, days: i
                 else:
                     items.append({"spot": s["name"], "why": "项目过多,建议延长天数或取舍",
                                   "time": "", "time_reason": ""})
-        # 交通时间感知:到达日砍上午、出发日砍晚上,并给出在途提示
+        # 城际移动统一占用到达日，避免前晚和次日上午重复扣同一段交通。
         notes = []
         if rest_flags[k] and items:
             notes.append("🧘 休整日:不赶景点,轻松逛吃")
@@ -688,30 +734,23 @@ def _build_city_plan(name: str, summary: str, order: list, groups: dict, days: i
         if k == 0 and in_h and in_h >= 3:
             kept, dropped = [], []
             for it in items:
-                if SLOT_ORDER.get(it.get("time"), 99) < SLOT_ORDER[AFTERNOON]:
+                if it.get("time") == "全天" or SLOT_ORDER.get(it.get("time"), 99) < SLOT_ORDER[AFTERNOON] or (in_h >= 6 and it.get("time") == "下午"):
                     dropped.append(it)
                 else:
                     kept.append(it)
             items = kept
+            afternoon_free = in_h < 6 and not any(it.get("time") == "下午" for it in kept)
             for it in dropped:
+                if afternoon_free and it.get("time") != "全天":
+                    it["time"] = "下午"
+                    it["time_reason"] = "上午跨城，改为下午参观；请核实预约场次与闭馆时间"
+                    items.append(it)
+                    afternoon_free = False
+                    continue
                 items.append({"spot": it["spot"],
                               "why": f"上午在途({it['time']}场次来不及),建议延长天数或改到次日",
                               "time": "", "time_reason": ""})
-            notes.append(f"🚄 上午在途:从上一站出发约 {in_h:.1f}h,抵达后行程从下午开始")
-        out_h = outgoing.get(city_name)
-        if k == cd - 1 and out_h and out_h >= 3:
-            kept, dropped = [], []
-            for it in items:
-                if it.get("time") in (SUNSET, EVENING):
-                    dropped.append(it)
-                else:
-                    kept.append(it)
-            items = kept
-            for it in dropped:
-                items.append({"spot": it["spot"],
-                              "why": f"傍晚在途前往下一城({it['time']}场次来不及),建议提前或改期",
-                              "time": "", "time_reason": ""})
-            notes.append(f"🚄 傍晚出发前往下一城(约 {out_h:.1f}h),当晚行程不宜排太晚")
+            notes.append(f"城际在途:从上一站出发约 {in_h:.1f}h，{'白天主要留给交通' if in_h >= 6 else '抵达后从下午开始'}（交通方式与班次需核实）")
         # 返程预留:最后一天下午留给回程(用户例:7天行程,第7天下午回家)
         if day_no == len(use) and return_leg and return_leg.get("travel_h", 0) >= 1.5:
             ret_h = return_leg["travel_h"]
@@ -759,19 +798,15 @@ def _build_city_plan(name: str, summary: str, order: list, groups: dict, days: i
                     "to": nxt_city, "km": legs[idx]["km"],
                     "rail": tr.get("rail"), "recommend": tr.get("recommend"),
                 }
+        actual_spots = [item_spots[id(it)] for it in items if it.get("time") and id(it) in item_spots]
         daily.append({
             "day": day_no, "title": title, "items": items,
             "note": "；".join(notes) if notes else "",
-            "stay": _pick_stay(city_spots), "foods": _load_foods(city_name),
+            "stay": _pick_stay(actual_spots), "foods": _load_foods(city_name),
             "next_transport": next_transport,
         })
-    if len(expanded) > len(use):
-        daily.append({"day": len(use) + 1,
-                      "title": "剩余城市(天数不足,建议延长)",
-                      "items": [{"spot": c["name"] + " 继续游览", "why": "增加天数后可纳入"} for c, _, _ in expanded[len(use):]],
-                      "stay": {"town": "", "price": "", "km_from_last": 0, "note": ""}})
     days_txt = " · ".join(f"{c} {city_days.get(c, 1)}天" for c in [cn["name"] for cn in cities])
-    tips = [f"全程约 {total_km}km,途经 {len(cities)} 城 · 每城天数: {days_txt}"]
+    tips = [f"城际参考里程约 {total_km}km（不含市内交通）,途经 {len(cities)} 城 · 每城天数: {days_txt}"]
     if overflow_warn:
         names = "、".join(s["name"] for s in overflow_warn[:4])
         tips.append(f"⚠️ 行程偏紧:有 {len(overflow_warn)} 个项目放不下({names} 等),"
@@ -781,7 +816,19 @@ def _build_city_plan(name: str, summary: str, order: list, groups: dict, days: i
     elif return_leg:
         tips.append(f"🔁 返程:第{len(use)}天下午从{return_leg['from_city']}返回"
                     f"{return_leg['to_city']}(约{return_leg['travel_h']:.1f}h),当天只排上午")
-    return {"name": name, "summary": summary, "route": legs, "daily": daily, "tips": tips}
+    unscheduled = []
+    for day in daily:
+        keep = []
+        for item in day["items"]:
+            if not item.get("time") and any(k in item.get("why", "") for k in ("备选", "项目过多", "场次来不及", "该时段留给回程")):
+                unscheduled.append(item)
+            else:
+                keep.append(item)
+        day["items"] = keep or [{"spot": "自由活动 / 交通缓冲", "time": "", "why": "不强行安排来不及游览的景点"}]
+    if unscheduled:
+        tips.append(f"⚠️ {len(unscheduled)} 项未排入当前日程，已单列备选；可延长天数或在工作坊取舍")
+    return {"name": name, "summary": summary, "route": legs, "daily": daily, "tips": tips,
+            "planning_mode": "citytour", "unscheduled": unscheduled}
 
 
 @router.post("/plans/citytour", response_model=list[PlanOut])
@@ -793,6 +840,13 @@ def citytour_plan(req: CityTourRequest):
     groups = {}
     for s in spots:
         groups.setdefault(s["city_name"], []).append(s)
+
+    if len(groups) > req.days:
+        raise HTTPException(400, f"已选 {len(groups)} 个城市，但只有 {req.days} 天。请减少城市或增加天数，不会自动加天。")
+    if req.city_days and any(value < 1 or value > 30 for value in req.city_days.values()):
+        raise HTTPException(400, "每城天数应为 1 至 30 天")
+    if req.city_days and sum(req.city_days.get(city, 1) for city in groups) > req.days:
+        raise HTTPException(400, "每城天数合计超过总天数，请调整后再生成")
 
     city_nodes = []
     for c, g in groups.items():
@@ -830,7 +884,9 @@ def citytour_plan(req: CityTourRequest):
             f"第{d['day']}天:{','.join(i['spot'].split('·')[0] for i in d['items'][:4])}"
             for d in p["daily"][:6])
         p["summary"] = f"{p['summary']} | 每日:{day_txt}"
-    source = "启发式(城市模式)"
+    source = "本地规划（城市模式）"
+    for plan in plans:
+        plan["generation"] = _local_generation()
     if get_llm().available:
         try:
             # 把真实每日排期喂给 LLM:名字/概述贴合实际,并产出每天实操提醒
@@ -843,26 +899,10 @@ def citytour_plan(req: CityTourRequest):
             user = prompts.CITYPLAN_USER.format(count=3, plans=plan_txt, style=req.style)
             out = get_llm().chat_json(prompts.CITYPLAN_SYSTEM, user, temperature=0.7)
             raw = out.get("plans", [])
-            valid = [p for p in raw if isinstance(p, dict) and p.get("name")]
-            if valid:
-                for i, p in enumerate(valid[:3]):
-                    base = plans[i % len(plans)]
-                    base["name"] = p.get("name", base["name"])
-                    if p.get("summary"):
-                        base["summary"] = p["summary"]
-                    if p.get("tips"):
-                        # 保留启发式的 ⚠️ 偏紧警告,再叠加 LLM 提示
-                        warns = [t for t in base.get("tips", []) if t.startswith("⚠️")]
-                        base["tips"] = (warns + p["tips"])[:6]
-                    # 每天 AI 实操提醒:合并进当天 note(与在途/休整提示并存)
-                    day_notes = p.get("day_notes") or {}
-                    for d in base["daily"]:
-                        n = day_notes.get(str(d["day"])) or day_notes.get(d["day"])
-                        if n and isinstance(n, str) and n.strip():
-                            d["note"] = "；".join(x for x in (d.get("note", ""), n.strip()) if x)
-                source = "DeepSeek 智能润色 + 启发式(城市模式)"
+            plans = _polish_plans(plans, raw)
         except Exception:
-            pass
+            for plan in plans:
+                plan["generation"] = _fallback_generation()
 
     plan_json = {"source": source, "mode": "citytour", "plans": plans}
     conn = get_conn()
@@ -875,7 +915,7 @@ def citytour_plan(req: CityTourRequest):
         pid = cur.lastrowid
     finally:
         conn.close()
-    return [PlanOut(id=pid, plan={**p, "source": source}) for p in plans]
+    return [PlanOut(id=pid, plan={**p, "source": p.get("source", source)}) for p in plans]
 
 
 @router.post("/plans/cityplan-recommend")
@@ -887,6 +927,9 @@ def cityplan_recommend(req: CityPlanRecommendRequest):
     groups = {}
     for s in spots:
         groups.setdefault(s["city_name"], []).append(s)
+
+    if len(groups) > req.total_days:
+        raise HTTPException(400, f"{req.total_days} 天无法按每天一城覆盖 {len(groups)} 个城市，请减少城市或增加天数")
 
     # 每城推荐天数:按"项目耗时"分配(大项目1天+小项目0.5天);放不下的城市溢出+警告,不挤占他城
     counts = {c: len(g) for c, g in groups.items()}
@@ -1191,8 +1234,12 @@ def _pick_stay(day_spots: list) -> dict:
     # 距离合理性说明
     fit_note = ""
     if anchor and pts:
-        ds = sorted(_haversine_km(anchor, {"lng": s["lng"], "lat": s["lat"]}) for s in pts)
-        fit_note = f"距当天各景点约 {max(0, round(ds[0] * ROAD_FACTOR))}-{round(ds[-1] * ROAD_FACTOR)}km,位置居中交通方便"
+        stay_point = {"lng": best["lng"], "lat": best["lat"]}
+        ds = sorted(_haversine_km(stay_point, s) * ROAD_FACTOR for s in pts) if best["lng"] is not None else []
+        if ds:
+            fit_note = f"住宿距当天景点约 {max(0, round(ds[0]))}-{round(ds[-1])}km（估算）"
+            if ds[-1] > 25:
+                fit_note += "；已收录住宿较远，建议在目的地附近另找住宿"
 
     return {
         "town": best["town"], "price": f"¥{lo}-{hi}/晚",
@@ -1222,11 +1269,10 @@ def _chunk_foods(chunk: list) -> dict:
     return merged
 
 
-def _roadtrip_plan(name: str, summary: str, order: list, style: str, close_loop: bool = True) -> dict:
-    per_day = STYLE_PER_DAY.get(style, 2)
+def _roadtrip_plan(name: str, summary: str, order: list, style: str, close_loop: bool = True, days: int = 5) -> dict:
     legs = _route_legs(order)
     # 环线闭环:终点返回起点(构成真正的"环")
-    if close_loop and len(order) >= 3:
+    if close_loop and len(order) >= 2:
         first, last = order[0], order[-1]
         km = _haversine_km(last, first) * ROAD_FACTOR
         legs.append({
@@ -1238,53 +1284,66 @@ def _roadtrip_plan(name: str, summary: str, order: list, style: str, close_loop:
             "closing": True,
         })
     total_km = sum(l["km"] for l in legs)
-    total_h = sum(l["hours"] for l in legs)
-    chunks = [order[i:i + per_day] for i in range(0, len(order), per_day)]
-    daily = []
-    prev = None
-    for i, chunk in enumerate(chunks, 1):
-        items = []
-        for s in chunk:
-            if s.get("id") == -1:  # 出发地
-                why = "🚩 出发地"
-            else:
-                tag = f"{s['grade']}景区" if s.get("grade") else f"评分{s['rating']}"
-                why = f"{s['city_name']} · {tag}"
-            if prev is not None:
-                km = _haversine_km(prev, s) * ROAD_FACTOR
-                why += f";距上一站约{round(km)}km / {(km / HIGHWAY_KMH):.1f}h"
-            items.append({"spot": s["name"], "why": why})
-            prev = s
-        daily.append({"day": i, "title": f"第{i}天 · 自驾路段", "items": items,
-                      "stay": _pick_stay(chunk), "foods": _chunk_foods(chunk)})
-    cities = sorted({s["city_name"] for s in order})
+    from ..road_schedule import schedule_roadtrip
+    scheduled, unscheduled, required_days, speed = schedule_roadtrip(order, style, days, close_loop)
+    for leg in legs:
+        leg["hours"] = round(leg["km"] / speed, 1)
+        leg["travel_h"] = leg["hours"]
+        leg["transport"] = {"driving": f"自驾约 {leg['km']}km / {leg['hours']}h", "recommend": "自驾（估算）"}
+    total_h = round(sum(l["hours"] for l in legs), 1)
+    daily = scheduled
+    cities = list(dict.fromkeys(s["city_name"] for s in order))
     tips = [f"全程约 {total_km}km,累计驾驶约 {total_h}h(直线距离×1.4 估算,实际以导航为准)"]
-    if close_loop and len(order) >= 3:
-        tips.append(f"🔁 闭环环线:终点返回起点「{first['name']}」({first['city_name']}),真正环一圈")
+    if unscheduled:
+        tips.append(f"⚠️ 当前 {days} 天放不下完整路线；按当前节奏估算至少需 {required_days} 天。剩余安排单列备选，地图为完整参考路线，不能视为已完成闭环。")
+    tips.append(f"每日驾驶上限按风格预留，路况按约 {speed:g}km/h 估算；山区天气、停车与预约仍需复核")
+    if close_loop and len(order) >= 2:
+        tips.append(f"🔁 {'参考路线设有返程，当前天数尚未完成' if unscheduled else '已为返程预留时间'}：返回「{first['name']}」({first['city_name']})")
     if len(cities) > 1:
         tips.append(f"途经 {len(cities)} 个城市: {' → '.join(cities[:6])}{'...' if len(cities) > 6 else ''},建议提前订沿途住宿")
-    return {"name": name, "summary": summary, "route": legs, "daily": daily, "tips": tips}
+    return {"name": name, "summary": summary, "route": legs, "daily": daily, "tips": tips,
+            "planning_mode": "roadtrip", "unscheduled": unscheduled, "required_days": required_days,
+            "route_incomplete": bool(unscheduled)}
+
+
+def _time_first_roadtrip(order, style, close_loop, days):
+    """Offer an explicitly reduced, finishable alternative; never delete cart choices."""
+    from ..road_schedule import schedule_roadtrip
+    chosen = list(order)
+    deferred = []
+    _, _, original_days, _ = schedule_roadtrip(chosen, style, days, close_loop, details=False)
+    while len([s for s in chosen if s.get("id") != -1]) > 1:
+        _, pending, _, _ = schedule_roadtrip(chosen, style, days, close_loop, details=False)
+        if not pending:
+            break
+        candidates = []
+        for index, spot in enumerate(chosen):
+            if spot.get("id") == -1:
+                continue
+            trial = chosen[:index] + chosen[index + 1:]
+            _, _, needed, _ = schedule_roadtrip(trial, style, days, close_loop, details=False)
+            distance = _tour_len(trial) if close_loop else sum(_haversine_km(a, b) for a, b in zip(trial, trial[1:]))
+            quality = (spot.get("rating") or 4.0) + (0.5 if spot.get("grade") == "5A" else 0)
+            candidates.append(((needed, distance, quality), index))
+        _, remove = min(candidates)
+        deferred.append(chosen.pop(remove))
+    plan = _roadtrip_plan("B | 时间优先", "优先在总天数内完成往返；较绕路的候选单列备选，不从清单删除", chosen, style, close_loop, days)
+    plan["unscheduled"] += [{"spot": s["name"], "spot_id": s["id"], "why": "为控制驾驶和游览强度，暂列备选；可在工作坊重新加入"} for s in deferred]
+    if deferred:
+        plan["tips"].insert(0, f"已取舍 {len(deferred)} 处候选；全选原路线约需 {original_days} 天。当前地图只展示本方案所选路线。")
+    return plan
 
 
 def _llm_roadtrip(spots: list, base_order: list, style: str, fallback: list) -> list:
     """LLM 为启发式路线撰写方案名/概述/提示(距离仍为估算值,保证可信)。"""
-    route_txt = " → ".join(f"{s['name']}({s['city_name']})" for s in base_order)
+    route_txt = "\n\n".join(
+        f"方案{i + 1} {p['name']}，实际{len(p['daily'])}天，未排入{len(p.get('unscheduled', []))}项：\n" +
+        "\n".join(f"第{day['day']}天：" + "；".join(it['spot'] for it in day['items']) for day in p['daily'])
+        for i, p in enumerate(fallback))
     user = prompts.ROADTRIP_USER.format(route=route_txt, style=style, plan_count=3)
     out = get_llm().chat_json(prompts.ROADTRIP_SYSTEM, user, temperature=0.7)
     raw = out.get("plans", [])
-    valid = [p for p in raw if isinstance(p, dict) and p.get("name")]
-    if not valid:
-        raise ValueError("LLM 返回空方案")
-    merged = []
-    for i, p in enumerate(valid[:3]):
-        base = fallback[i % len(fallback)]
-        m = dict(base)
-        m["name"] = p.get("name", base["name"])
-        m["summary"] = p.get("summary", base["summary"])
-        if p.get("tips"):
-            m["tips"] = p["tips"]
-        merged.append(m)
-    return merged
+    return _polish_plans(fallback, raw)
 
 
 def _resolve_start(req_start: str):
@@ -1321,17 +1380,19 @@ def roadtrip_plan(req: RoadtripRequest):
         b_order = _two_opt(_nearest_order(spots, max_rating_idx))
         c_order = list(reversed(base))
     fallback = [
-        _roadtrip_plan("A | 最短路线", "最近邻+2-opt 优化串联,总里程最短且路线少交叉", base, req.style, req.close_loop),
-        _roadtrip_plan("B | 高分优先", "从评分最高的景区出发串联(同样 2-opt 优化)", b_order, req.style, req.close_loop),
-        _roadtrip_plan("C | 反向环线", "最短路线反向,适合不同出发方向", c_order, req.style, req.close_loop),
+        _roadtrip_plan("A | 顺路串联", "最近邻与局部优化减少绕路，驾驶和游玩共同占用每日预算", base, req.style, req.close_loop, req.days),
+        _time_first_roadtrip(b_order, req.style, req.close_loop, req.days),
+        _roadtrip_plan("C | 反向游览", "反向游览，比较不同抵达顺序与住宿落点", c_order, req.style, req.close_loop, req.days),
     ]
-    source = "启发式(自驾估算)"
+    source = "本地规划（自驾估算）"
+    for plan in fallback:
+        plan["generation"] = _local_generation()
     if get_llm().available:
         try:
             fallback = _llm_roadtrip(spots, base, req.style, fallback)
-            source = "DeepSeek 润色 + 启发式(自驾估算)"
         except Exception:
-            pass
+            for plan in fallback:
+                plan["generation"] = _fallback_generation()
 
     plan_json = {"source": source, "mode": "roadtrip", "plans": fallback}
     conn = get_conn()
@@ -1344,4 +1405,4 @@ def roadtrip_plan(req: RoadtripRequest):
         pid = cur.lastrowid
     finally:
         conn.close()
-    return [PlanOut(id=pid, plan={**p, "source": source}) for p in fallback]
+    return [PlanOut(id=pid, plan={**p, "source": p.get("source", source)}) for p in fallback]

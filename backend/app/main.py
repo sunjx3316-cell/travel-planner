@@ -23,7 +23,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 FRONTEND_DIR = PROJECT_ROOT / "frontend"
 DATA_DIR = PROJECT_ROOT / "data"
 
-app = FastAPI(title="旅行智规 Travel Planner", version="1.0.1")
+app = FastAPI(title="旅行智规 Travel Planner", version="1.1.0")
 
 
 class InMemoryRateLimiter:
@@ -59,6 +59,8 @@ rate_limiter = InMemoryRateLimiter()
 
 def _rate_policy(path: str) -> tuple[str, int, int]:
     """按成本而非仅按 HTTP 方法划分：AI/规划接口比读地图昂贵得多。"""
+    if path == "/api/ai/test":
+        return "ai-test", 3, 60
     if path.startswith("/api/rail/"):
         return "rail", 12, 60
     if path.endswith("/summarize") or path.startswith("/api/plans/"):
@@ -97,7 +99,7 @@ async def protect_public_api(request: Request, call_next):
 
 init_db()
 
-from .routers import cart, cities, plans, spots, export, rail  # noqa: E402
+from .routers import cart, cities, plans, spots, export, rail, ai_settings  # noqa: E402
 
 app.include_router(cities.router)
 app.include_router(spots.router)
@@ -105,14 +107,16 @@ app.include_router(cart.router)
 app.include_router(plans.router)
 app.include_router(export.router)
 app.include_router(rail.router)
+app.include_router(ai_settings.router)
 
 
 @app.get("/api/status", response_model=StatusOut)
 def status():
-    from ..ai.pipeline import get_llm
+    from ..ai.settings import get_settings
 
     return StatusOut(
-        llm_available=get_llm().available,
+        llm_available=get_settings().public()["enabled"],
+        ai=get_settings().public(),
         data_source="本地景点资料、来源标注评价与授权图片；弱证据另行标注",
         version=app.version,
     )

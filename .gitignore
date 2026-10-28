@@ -13,6 +13,7 @@ data/*.db
 data/images/
 output/
 data/raw/
+data/private/
 data/xhs_cookies.json
 data/xhs_daily_count.json
 .env

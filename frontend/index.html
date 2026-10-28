@@ -13,14 +13,15 @@
   <link rel="apple-touch-icon" href="/assets/app-icon.svg">
   <link rel="stylesheet" href="/css/style.css?v=1.0.1">
   <link rel="stylesheet" href="/css/rail.css?v=1.0.1">
+  <link rel="stylesheet" href="/css/mode.css?v=1.1.0">
   <script src="/assets/echarts.min.js"></script>
 </head>
 <body>
   <header>
-    <div class="brand">🧭 旅行智规 <span class="version">v1.0.1</span></div>
+    <div class="brand">🧭 旅行智规 <span class="version">v1.1.0</span></div>
     <div class="sub">开局一张中国地图,选出你想去的地方</div>
     <button id="install-app" class="install-app" type="button" hidden>安装到桌面</button>
-    <div class="badge" id="mode-badge">加载中...</div>
+    <button type="button" class="badge mode-badge" id="mode-badge" aria-haspopup="dialog">加载中...</button>
   </header>
 
   <main>
@@ -56,6 +57,7 @@
         <button data-tab="plans">🗺 方案</button>
         <button data-tab="trip">📌 我的行程</button>
       </nav>
+      <div id="planning-progress" role="status" class="planning-progress" hidden></div>
 
       <div id="tab-cities" class="tab-pane active"></div>
       <div id="tab-spots" class="tab-pane"></div>
@@ -72,7 +74,8 @@
   </footer>
 
   <!-- 版本参数让已安装 PWA 的旧脚本缓存失效，确保逻辑更新立即生效。 -->
-  <script src="/js/app.js?v=1.0.1"></script>
+  <script src="/js/mode.js?v=1.1.0"></script>
+  <script src="/js/app.js?v=1.1.0"></script>
   <script src="/js/workshop.js?v=1.0.1"></script>
   <script src="/js/rail.js?v=1.0.1"></script>
 </body>

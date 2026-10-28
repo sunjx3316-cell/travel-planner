@@ -9,19 +9,48 @@ const state = {
   detail: null,
   cart: [],
   planDays: 3,
+  planStyle: '轻松',
+  roadStartCity: '',
+  cityStartCity: '',
+  closeLoop: true,
+  cityDays: {},
   cityRec: null,
   workbench: null,
+  generating: false,
 };
 
 // ---------- 基础工具 ----------
 async function api(path, opts = {}) {
+  const planning = opts.method === 'POST' && /^\/api\/plans\/(citytour|roadtrip|generate)$/.test(path);
+  const progress = document.querySelector('#planning-progress');
+  if (planning && state.generating) throw new Error('方案正在生成，请勿重复提交');
+  if (planning) {
+    state.generating = true;
+    if (progress) { progress.hidden = false; progress.textContent = window.TravelMode?.isAI()
+      ? '正在生成方案… AI 增强可能需要约一分钟，请勿重复点击。'
+      : '正在生成方案… 正在核对路线和每日时间预算。'; }
+  }
+  try {
   const { headers: extraHeaders, ...fetchOpts } = opts;
   const resp = await fetch(path, {
     headers: { "Content-Type": "application/json", ...(extraHeaders || {}) },
     ...fetchOpts,
   });
-  if (!resp.ok) throw new Error(`${path} -> ${resp.status}`);
+  if (!resp.ok) {
+    const error = await resp.json().catch(() => ({}));
+    throw new Error(typeof error.detail === 'string' ? error.detail : `请求未完成（${resp.status}）`);
+  }
   return resp.json();
+  } catch (error) {
+    if (planning && progress) progress.textContent = error.message;
+    throw error;
+  } finally {
+    if (planning) {
+      state.generating = false;
+      if (progress && progress.textContent.startsWith('正在生成')) progress.hidden = true;
+      window.TravelMode?.refresh();
+    }
+  }
 }
 
 function esc(s) {
@@ -97,9 +126,7 @@ async function init() {
     const [cities, status] = await Promise.all([api("/api/cities"), api("/api/status")]);
     state.cities = cities;
     state.llmAvailable = status.llm_available;
-    $("#mode-badge").textContent = state.llmAvailable
-      ? "AI 模式: DeepSeek 已连接"
-      : "AI 模式: 启发式(mock) · 配置 DEEPSEEK_API_KEY 启用 LLM";
+    window.TravelMode?.init(status.ai);
     await loadCart();
     initMap();
     renderCities(null);
@@ -519,7 +546,9 @@ function drawRouteOnMap(plan) {
     ],
   }, true);
   const totalKm = plan.route.reduce((a, l) => a + l.km, 0);
-  $("#map-hint").textContent = closed
+  $("#map-hint").textContent = plan.route_incomplete
+    ? `${plan.name} · 完整参考路线，当前天数尚未覆盖全部 · ${totalKm}km`
+    : closed
     ? `${plan.name} · 🔁 闭环环线 起点=终点🟢 · 全长 ${totalKm}km`
     : `${plan.name} · 起点🟢 终点🔴 · 全长 ${totalKm}km`;
 }
@@ -931,7 +960,7 @@ async function renderLoops() {
     }
     pane.innerHTML = `
       <h3 style="margin-bottom:6px">精选自驾环线 (${loops.length})</h3>
-      <div class="loop-note">🗺 点「地图查看」→ 切到该区域地图 → 整条加入清单 → 清单自驾模式生成路线并画在地图上</div>
+      <div class="loop-note">以下是环线候选地点，不代表全部能在标注天数内游完。加入后可选「时间优先」，按你的天数取舍。</div>
       ${loops.map((lp) => `
         <div class="plan-card">
           <h4>🏔 ${esc(lp.name)} <span class="days-tag">${esc(lp.days)}</span></h4>
@@ -958,7 +987,12 @@ async function addLoopToCart(loopName) {
       await api(`/api/cart/${s.id}`, { method: "POST" });
     }
     await loadCart();
-    flash(`已加入 ${lp.spots.length} 个点位 ✓ 切到清单→自驾模式生成路线`);
+    planMode = 'roadtrip';
+    const daysMatch = String(lp.days || '').match(/(\d+)\s*[-–]\s*(\d+)/);
+    if (daysMatch) state.planDays = Math.min(30, Number(daysMatch[2]));
+    renderCart();
+    switchTab('cart');
+    flash(`已加入 ${lp.spots.length} 处候选，可按天数取舍`);
   } catch (e) {
     flash("加入失败: " + e.message);
   }
@@ -966,7 +1000,9 @@ async function addLoopToCart(loopName) {
 
 // ---------- 购物车 ----------
 async function loadCart() {
-  state.cart = await api("/api/cart");
+  const cart = await api("/api/cart");
+  if (cart.map(it => it.spot_id).join(',') !== state.cart.map(it => it.spot_id).join(',')) state.cityRec = null;
+  state.cart = cart;
   $("#cart-count").textContent = state.cart.length;
   // 若用户正停留在省级城市页，购物车变化应同步增删地图亮点。
   if (chart && mapLevel === "province") renderProvinceSpots();
@@ -1009,9 +1045,9 @@ function renderCart() {
     return;
   }
   const daysSel = `<label>天数</label><select id="days" onchange="syncPlanDays('cart')">${
-    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((d) => `<option value="${d}" ${d === state.planDays ? "selected" : ""}>${d} 天</option>`).join("")}</select>`;
-  const styleSel = `<label>风格</label><select id="style">
-    <option>轻松</option><option>紧凑</option><option>亲子</option></select>`;
+    Array.from({length: 30}, (_, i) => i + 1).map((d) => `<option value="${d}" ${d === state.planDays ? "selected" : ""}>${d} 天</option>`).join("")}</select>`;
+  const styleSel = `<label>风格</label><select id="style" onchange="state.planStyle=this.value">${
+    ['轻松','紧凑','亲子'].map(s => `<option ${s === state.planStyle ? 'selected' : ''}>${s}</option>`).join('')}</select>`;
   const modeToggle = `
     <div class="mode-toggle">
       <button class="btn sm ${planMode === "city" ? "primary" : ""}" onclick="setPlanMode('city')">🏙 城市模式</button>
@@ -1033,8 +1069,9 @@ function renderCart() {
       </div>
       ${Object.entries(byCity).map(([city, items]) => `
         <div class="city-group-title">🏙 ${esc(city)} (${items.length})
-          <span style="float:right;font-weight:400;font-size:12px">玩 <select id="city-days-${esc(city)}" style="padding:2px 6px;border:1px solid var(--border);border-radius:6px">
-            ${[1, 2, 3].map((d) => `<option value="${d}" ${d === Math.min(3, Math.max(1, Math.ceil(items.length / 3))) ? "selected" : ""}>${d}天</option>`).join("")}
+          <span style="float:right;font-weight:400;font-size:12px">玩 <select id="city-days-${esc(city)}" onchange="state.cityDays[this.id.slice(10)]=Number(this.value);state.cityRec=null" style="padding:2px 6px;border:1px solid var(--border);border-radius:6px">
+            <option value="0" ${!state.cityDays[city] ? 'selected' : ''}>自动分配</option>
+            ${Array.from({length: state.planDays}, (_, i) => i + 1).map((d) => `<option value="${d}" ${state.cityDays[city] === d ? 'selected' : ''}>${d}天</option>`).join("")}
           </select></span>
         </div>
         ${items.map((it) => `
@@ -1058,9 +1095,9 @@ function renderCart() {
       </h3>
       ${modeToggle}
       <div class="cart-actions">${daysSel}${styleSel}
-        <label style="display:block;margin-top:6px"><input type="checkbox" id="close-loop" checked> 🔁 闭合环线(终点返回起点)</label>
+        <label style="display:block;margin-top:6px"><input type="checkbox" id="close-loop" ${state.closeLoop ? 'checked' : ''} onchange="state.closeLoop=this.checked"> 🔁 闭合环线(终点返回起点)</label>
         <label style="display:block;margin-top:6px">🚩 出发地
-          <input id="start-city" list="city-list" placeholder="如:兰州" style="width:120px;padding:5px 8px;border:1px solid var(--border);border-radius:8px">
+          <input id="start-city" list="city-list" placeholder="如:兰州" value="${esc(state.roadStartCity)}" oninput="state.roadStartCity=this.value" style="width:120px;padding:5px 8px;border:1px solid var(--border);border-radius:8px">
           <datalist id="city-list">${state.cities.map((c) => `<option value="${esc(c.name)}">`).join("")}</datalist>
         </label>
       </div>
@@ -1088,12 +1125,13 @@ async function generateCityTour() {
   // 城市模式:每城天数可调;无闭环/出发点(那是自驾模式的)
   // 若已有推荐结果(state.cityRec),直接按推荐生成
   const rec = state.cityRec;
-  let cityDays = rec ? rec.city_days : {};
+  let cityDays = rec ? rec.city_days : Object.fromEntries(Object.entries(state.cityDays)
+    .filter(([city, days]) => days > 0 && state.cart.some(it => it.city_name === city)));
   if (!rec) {
     // 只收集清单里真实存在的城市(避免残留的旧下拉污染每城天数)
     document.querySelectorAll("[id^='city-days-']").forEach((sel) => {
       const cn = sel.id.replace("city-days-", "");
-      if (state.cart.some((it) => it.city_name === cn)) {
+      if (+sel.value > 0 && state.cart.some((it) => it.city_name === cn)) {
         cityDays[cn] = +sel.value;
       }
     });
@@ -1147,13 +1185,13 @@ function cityPlanWorkspaceHtml() {
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <label style="font-size:12px">🚩 出发地
-        <input id="plan-start" list="plan-city-list" placeholder="如:兰州" style="width:120px;padding:4px 8px;border:1px solid var(--border);border-radius:8px">
+        <input id="plan-start" list="plan-city-list" placeholder="如:兰州" value="${esc(state.cityStartCity)}" oninput="state.cityStartCity=this.value;state.cityRec=null" style="width:120px;padding:4px 8px;border:1px solid var(--border);border-radius:8px">
         <datalist id="plan-city-list">${state.cities.map((c) => `<option value="${esc(c.name)}">`).join("")}</datalist>
       </label>
       <button class="btn sm" onclick="TravelRail.open()">铁路交通 →</button>
       <label style="font-size:12px">📅 总天数
         <select id="plan-days" onchange="syncPlanDays('ws')" style="padding:4px 8px;border:1px solid var(--border);border-radius:8px">
-          ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((d) => `<option value="${d}" ${d === state.planDays ? "selected" : ""}>${d} 天</option>`).join("")}
+          ${Array.from({length: 30}, (_, i) => i + 1).map((d) => `<option value="${d}" ${d === state.planDays ? "selected" : ""}>${d} 天</option>`).join("")}
         </select>
       </label>
       <button class="btn sm" onclick="getCityRecommend()">🤖 获取推荐(每城几天 · 从哪开始)</button>
@@ -1170,7 +1208,7 @@ function syncPlanDays(from) {
   const source = from === "cart" ? cart : ws;
   if (!source) return;
   const value = Number(source.value);
-  if (!Number.isInteger(value) || value < 1 || value > 10) return;
+  if (!Number.isInteger(value) || value < 1 || value > 30) return;
   const changed = state.planDays !== value;
   state.planDays = value;
   if (cart) cart.value = String(value);
@@ -1180,6 +1218,12 @@ function syncPlanDays(from) {
     state.cityRec = null;
     const rec = $("#city-rec");
     if (rec) rec.innerHTML = `<div class="empty-hint">总天数已更新，请重新获取推荐</div>`;
+  }
+  if (changed) {
+    for (const city of Object.keys(state.cityDays)) {
+      if (state.cityDays[city] > value) state.cityDays[city] = 0;
+    }
+    if ($('#tab-cart')?.classList.contains('active')) renderCart();
   }
 }
 
@@ -1291,6 +1335,7 @@ async function generatePlans(cityName) {
 }
 
 function renderPlans(cityName, plans) {
+  window.TravelMode?.refresh();
   lastPlans = plans;
   const pane = $("#tab-plans");
   pane.innerHTML = `
@@ -1299,7 +1344,9 @@ function renderPlans(cityName, plans) {
     ${plans.map((p, i) => `
       <div class="plan-card">
         <h4>${esc(p.name)}</h4>
-        <div class="summary">${p.source ? `来源: ${esc(p.source)} · ` : ""}${esc(String(p.summary || '').split(/\s*\|\s*每日[:：]/)[0])}</div>
+        <div class="summary">${esc(String(p.summary || '').split(/\s*\|\s*每日[:：]/)[0])}</div>
+        <div class="plan-origin ${p.generation?.state === 'fallback' ? 'failed' : ''}">${esc(p.generation?.message || p.source || '本地规划')}</div>
+        ${p.unscheduled?.length ? `<details class="plan-origin failed"><summary>${p.unscheduled.length} 项未排入当前天数 · 查看备选</summary>${p.unscheduled.map(it => `<div>${esc(it.spot)} — ${esc(it.why)}</div>`).join('')}</details>` : ''}
         <div class="plan-actions"><button class="btn sm accent" onclick="openPlanWorkbench(${i})">进入行程工作坊 →</button><button class="btn sm" onclick="openPlanWorkbench(${i});TravelRail.open({scope:'workbench'})">选择铁路</button></div>
         <details class="plan-preview"><summary>查看每日安排与原建议</summary>
         ${p.route && p.route.length ? `
@@ -1307,7 +1354,7 @@ function renderPlans(cityName, plans) {
             const tr = l.transport || {};
             const trTxt = tr.recommend ? ` · ${tr.recommend}` : "";
             return `<div><span>${esc(l.from_city)} <b>${esc(l.from)}</b></span> → <span><b>${esc(l.to)}</b> <em>${l.km}km/${l.hours}h</em></span>
-              <div class="route-tr">🚄 ${esc(tr.rail || "自驾")}${trTxt}</div></div>`;
+              <div class="route-tr">${p.planning_mode === 'roadtrip' ? '🚗' : '↔'} ${esc(p.planning_mode === 'roadtrip' ? tr.driving || '自驾（估算）' : tr.rail || '城际交通需核实')}${trTxt}</div></div>`;
           }).join("")}</div>
           <button class="btn sm primary" onclick="drawRoute(${i})">🗺 在地图查看此路线</button>` : ""}
         ${(p.daily || []).map((day) => `
@@ -1318,7 +1365,7 @@ function renderPlans(cityName, plans) {
               `<div class="item">${it.time ? `<span class="time-chip">🕐${esc(it.time)}</span> ` : ""}${esc(it.spot)} <span class="why">— ${esc(it.why)}</span>
                 ${it.time_reason ? `<br/><span class="time-note">${esc(it.time_reason)}</span>` : ""}</div>`).join("")}
             ${day.next_transport ? `
-              <div class="stay-line tr">🚄 前往下一城 <b>${esc(day.next_transport.to)}</b>:
+              <div class="stay-line tr">🚄 次日转场参考 <b>${esc(day.next_transport.to)}</b>:
                 ${esc(day.next_transport.rail || `自驾 ${day.next_transport.km}km`)} · 建议:${esc(day.next_transport.recommend || "高铁")}</div>` : ""}
             ${day.stay ? `
               <div class="stay-line">🏨 住: <b>${esc(day.stay.area_label || day.stay.town)}</b> · ${esc(day.stay.price)} · 距当日终点 ${day.stay.km_from_last}km

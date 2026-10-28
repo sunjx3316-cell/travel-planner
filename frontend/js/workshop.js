@@ -374,7 +374,7 @@ function tripPrintHtml(plan) {
       }).join('');
       const notes = [day.note ? `<p>${esc(day.note)}</p>` : '',
         !plan.workshop_changed && day.stay ? `<p>住 / ${esc(day.stay.area_label || day.stay.town || '')} ${esc(day.stay.price || '')}</p>` : '',
-        !plan.workshop_changed && day.next_transport ? `<p>行 / ${esc(day.next_transport.to || '')} ${esc(day.next_transport.rail || day.next_transport.recommend || '')}</p>` : '',
+        !plan.workshop_changed && day.next_transport ? `<p>次日行 / ${esc(day.next_transport.to || '')} ${esc(day.next_transport.rail || day.next_transport.recommend || '')}</p>` : '',
         !plan.workshop_changed && day.foods?.dishes?.length ? `<p>食 / ${day.foods.dishes.map(dish => esc(dish.name)).join('、')}</p>` : ''].join('');
       return `<td>${sections}${notes ? `<div class="trip-memo"><h3 class="trip-period">MEMO / 当天备忘</h3>${notes}</div>` : ''}</td>`;
     });

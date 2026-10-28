@@ -171,6 +171,14 @@ def build_pdf(plan: ExportPlan):
     slot = ParagraphStyle('slot', parent=muted, fontSize=8, leading=12, spaceBefore=6, spaceAfter=6, textColor=green, keepWithNext=True)
     time_style = ParagraphStyle('time', parent=muted, fontSize=8, spaceAfter=4, textColor=colors.HexColor('#a07238'), keepWithNext=True)
     small = ParagraphStyle('small', parent=muted, fontSize=7, leading=11, spaceAfter=0)
+    # Dense driving days include transfer cards as well as visits. Tighten only
+    # vertical spacing, not text size, to avoid a nearly empty memo-only page.
+    if any(len(day.items) >= 3 for day in plan.daily):
+        base.leading, base.spaceAfter = 12, 2
+        muted.leading, muted.spaceAfter = 10, 2
+        item.leading, item.spaceAfter = 14, 3
+        slot.spaceBefore, slot.spaceAfter = 4, 4
+        time_style.spaceAfter = 2
     page_size = landscape(A4)
     doc = SimpleDocTemplate(stream, pagesize=page_size, leftMargin=14*mm, rightMargin=14*mm,
                             topMargin=12*mm, bottomMargin=15*mm,
@@ -248,7 +256,7 @@ def build_pdf(plan: ExportPlan):
                 if day.stay and not common_stay:
                     notes.append(Paragraph('住 / ' + safe_text(day.stay.area_label or day.stay.town) + ' ' + safe_text(day.stay.price), muted))
                 if day.next_transport:
-                    notes.append(Paragraph('行 / ' + safe_text(day.next_transport.to) + ' · ' + safe_text(day.next_transport.rail or day.next_transport.recommend), muted))
+                    notes.append(Paragraph('次日转场 / ' + safe_text(day.next_transport.to) + ' · ' + safe_text(day.next_transport.rail or day.next_transport.recommend), muted))
                 if day.foods and day.foods.dishes and not common_foods:
                     notes.append(Paragraph('食 / ' + '、'.join(safe_text(dish.name) for dish in day.foods.dishes), muted))
             if notes:
@@ -311,8 +319,6 @@ def build_pdf(plan: ExportPlan):
             table = Table(rows, colWidths=[doc.width*.18, doc.width*.41, doc.width*.41], repeatRows=1)
             table.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,0),colors.HexColor('#e7efe9')),('VALIGN',(0,0),(-1,-1),'TOP'),('TOPPADDING',(0,0),(-1,-1),10),('BOTTOMPADDING',(0,0),(-1,-1),10),('LINEBELOW',(0,0),(-1,-1),.4,colors.HexColor('#d9e2dc'))]))
             story.extend([table, Paragraph(safe_text(f'{journey.risk} · 时刻表 {journey.snapshot} · ' + ('票价待核实' if journey.cost is None else f'参考 ¥{journey.cost:g}')), muted), Spacer(1, 12)])
-    story.extend([Spacer(1, 10), Paragraph('行程留一点余地，旅途多一点自在。开放时间、预约及交通信息请出发前核实。', small)])
-
     def footer(canvas, document):
         canvas.saveState()
         canvas.setStrokeColor(colors.HexColor('#d9e2dc'))
@@ -320,7 +326,7 @@ def build_pdf(plan: ExportPlan):
         canvas.line(14*mm, 12*mm, page_size[0]-14*mm, 12*mm)
         canvas.setFont(font, 7)
         canvas.setFillColor(colors.HexColor('#64756a'))
-        canvas.drawString(14*mm, 7*mm, '旅行智规  /  YOUR JOURNEY, YOUR PACE')
+        canvas.drawString(14*mm, 7*mm, '旅行智规  /  开放时间、预约及交通请出发前核实。')
         canvas.drawRightString(page_size[0]-14*mm, 7*mm, f'{document.page:02d}  /  行程日历')
         canvas.restoreState()
 

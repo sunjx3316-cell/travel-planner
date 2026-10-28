@@ -1,0 +1,50 @@
+.mode-badge { color: inherit; cursor: pointer; white-space: nowrap; font-family: inherit; }
+.mode-badge:hover { background: #ffffff30; }
+.mode-dialog { margin: auto; width: min(820px, calc(100vw - 32px)); max-height: calc(100dvh - 40px); padding: 32px; border: 1px solid #dce6df; border-radius: 24px; color: #203e36; background: #f9fbf8; box-shadow: 0 28px 100px #102f3540; overflow-y: auto; }
+.mode-dialog::backdrop { background: #102e3c66; backdrop-filter: blur(4px); }
+.mode-dialog [hidden] { display: none !important; }
+.mode-heading { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+.mode-eyebrow { font-size: 10px; letter-spacing: 2px; color: #6a887c; }
+.mode-heading h2 { font-size: 26px; margin: 8px 0; letter-spacing: -.7px; }
+.mode-heading p { color: #718078; font-size: 13px; line-height: 1.7; }
+.mode-close { background: transparent; border: 0; color: #63776c; font-size: 26px; cursor: pointer; align-self: flex-start; width: 36px; height: 36px; }
+.mode-options { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.mode-option { text-align: left; background: #fff; border: 1px solid #dce6df; border-radius: 16px; padding: 22px; color: #203e36; cursor: pointer; font-family: inherit; display: flex; flex-direction: column; }
+.mode-option[aria-checked="true"] { border-color: #0e7c66; box-shadow: inset 0 0 0 1px #0e7c66; background: #f1f8f3; }
+.mode-option:hover { border-color: #0e7c66; }
+.mode-option-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.mode-symbol { width: 38px; height: 38px; display: grid; place-items: center; font-size: 30px; color: #0e7c66; background: #e3f0e7; border-radius: 12px; }
+.mode-tag { color: #658372; font-size: 11px; }
+.mode-option strong { font-size: 21px; font-weight: 650; }
+.mode-caption { color: #63796d; font-size: 11px; display: block; margin: 6px 0 20px; }
+.mode-feature { font-size: 12px; line-height: 1.8; margin-bottom: 8px; padding-left: 14px; position: relative; }
+.mode-feature::before { content: '·'; position: absolute; left: 2px; font-weight: 700; }
+.mode-bottom { padding-top: 14px; border-top: 1px solid #e0e9df; font-size: 11px; color: #7a867e; margin-top: auto; }
+.mode-api { margin-top: 20px; padding: 18px; border-radius: 14px; background: white; border: 1px solid #e0e9df; }
+.mode-api-label { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 13px; margin-bottom: 10px; }
+.mode-api-label span { color: #738279; font-size: 11px; }
+.mode-api input { width: 100%; min-width: 0; padding: 12px; font-size: 14px; border-radius: 9px; border: 1px solid #cbd9d0; }
+.mode-api p, .mode-details p { font-size: 11px; line-height: 1.8; color: #6b7d72; margin-top: 10px; }
+.mode-api-actions { display: flex; gap: 16px; margin-top: 10px; flex-wrap: wrap; }
+.mode-api-actions button { background: none; border: 0; color: #0e7c66; font-size: 12px; padding: 6px 0; cursor: pointer; }
+.mode-api-actions .mode-forget { color: #98605b; }
+.mode-details { margin-top: 18px; padding: 0 2px; }
+.mode-details summary { cursor: pointer; font-size: 12px; color: #61776b; }
+.mode-feedback { color: #a44c3d; font-size: 12px; line-height: 1.7; margin-top: 12px; }
+.mode-footer { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 18px; }
+.mode-footer span { color: #738279; font-size: 11px; }
+.mode-enter { border: 0; background: #164c3f; color: white; border-radius: 10px; padding: 13px 20px; cursor: pointer; font-size: 13px; font-weight: 600; }
+.mode-dialog button:disabled { opacity: .55; cursor: wait; }
+.mode-dialog :focus-visible, .mode-badge:focus-visible { outline: 3px solid #e8b569; outline-offset: 3px; }
+.plan-origin { font-size: 11px; color: #5c7166; margin: 8px 0; padding: 8px 10px; background: #f2f6f1; border-radius: 8px; line-height: 1.7; }
+.plan-origin.failed { color: #92503f; background: #fff5ec; }
+.planning-progress { padding: 10px 16px; font-size: 12px; line-height: 1.7; color: #695f30; background: #fff8df; }
+.plan-origin summary { cursor: pointer; }
+@media (max-width: 600px) {
+  .mode-dialog { padding: 22px 18px; border-radius: 18px; }
+  .mode-heading h2 { font-size: 22px; }
+  .mode-options { grid-template-columns: 1fr; gap: 12px; }
+  .mode-option { padding: 16px; }
+  .mode-caption { margin-bottom: 12px; }
+  .mode-footer { align-items: stretch; flex-direction: column; }
+}

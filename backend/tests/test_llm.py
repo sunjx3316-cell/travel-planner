@@ -23,7 +23,7 @@ PAYLOAD = (
 )
 
 
-def test_llm_client_chat_json_parses(monkeypatch):
+def test_llm_client_chat_json_parses(monkeypatch, ai_config):
     captured = {}
 
     def fake_post(url, **kwargs):
@@ -34,7 +34,7 @@ def test_llm_client_chat_json_parses(monkeypatch):
     monkeypatch.setattr("backend.ai.llm.requests.post", fake_post)
 
     client = LLMClient()
-    client.api_key = "sk-fake"
+    ai_config.update(mode="ai", api_key="sk-fake")
     out = client.chat_json("system", "user")
     assert out["highlights"] == ["亮点A"]
     assert out["trust_score"] == 70
@@ -43,7 +43,7 @@ def test_llm_client_chat_json_parses(monkeypatch):
     assert captured["json"]["messages"][0]["role"] == "system"
 
 
-def test_llm_summarize_pipeline(monkeypatch):
+def test_llm_summarize_pipeline(monkeypatch, ai_config):
     """LLM 路径整链路:prompt 组装 -> 响应解析 -> summarize_spot 输出"""
     notes = [
         {"title": "攻略", "content": "门票60,排队30分钟,下午5点闭馆。",
@@ -58,12 +58,8 @@ def test_llm_summarize_pipeline(monkeypatch):
         return FakeResponse(PAYLOAD)
 
     monkeypatch.setattr("backend.ai.llm.requests.post", fake_post)
-    old_key = pipeline._llm.api_key
-    pipeline._llm.api_key = "sk-fake"
-    try:
-        out = pipeline.summarize_spot("测试景区", notes)
-    finally:
-        pipeline._llm.api_key = old_key
+    ai_config.update(mode="ai", api_key="sk-fake")
+    out = pipeline.summarize_spot("测试景区", notes)
 
     assert out["source"].startswith("DeepSeek")
     assert out["note_count"] == 2
@@ -72,21 +68,17 @@ def test_llm_summarize_pipeline(monkeypatch):
     assert "排队30分钟" in captured["user"]     # prompt 含笔记正文
 
 
-def test_llm_fallback_on_error(monkeypatch):
+def test_llm_fallback_on_error(monkeypatch, ai_config):
     """LLM 抛错自动降级 mock,不中断演示"""
 
     def boom(url, **kwargs):
         raise RuntimeError("network down")
 
     monkeypatch.setattr("backend.ai.llm.requests.post", boom)
-    old_key = pipeline._llm.api_key
-    pipeline._llm.api_key = "sk-fake"
-    try:
-        out = pipeline.summarize_spot("测试景区", [
-            {"title": "t", "content": "排队1小时。", "author_hash": "a", "note_type": "avoid"},
-        ])
-    finally:
-        pipeline._llm.api_key = old_key
+    ai_config.update(mode="ai", api_key="sk-fake")
+    out = pipeline.summarize_spot("测试景区", [
+        {"title": "t", "content": "排队1小时。", "author_hash": "a", "note_type": "avoid"},
+    ])
 
     assert out["source"].startswith("示例数据")
     assert "LLM 失败" in out["source"]

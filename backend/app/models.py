@@ -107,7 +107,7 @@ class CityTourRequest(BaseModel):
     style: str = "轻松"
     close_loop: bool = False   # 城市模式默认不回程闭环(自驾模式才需要)
     start_city: str = ""
-    city_days: Optional[dict] = None   # {城市: 天数},如 {"西安": 2, "兰州": 1}
+    city_days: Optional[dict[str, int]] = None   # {城市: 天数}
 
 
 class CityPlanRecommendRequest(BaseModel):
@@ -124,6 +124,7 @@ class PlanOut(BaseModel):
 
 class StatusOut(BaseModel):
     llm_available: bool
+    ai: dict = Field(default_factory=dict)
     data_source: str
     version: str
 

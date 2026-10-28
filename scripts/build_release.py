@@ -3,7 +3,7 @@ import argparse, hashlib, json, os, shutil, subprocess, zipfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 def build(runtime, destination=None):
-    build=(destination or ROOT/'dist')/'travel-planner-1.0.1-windows-x64'
+    build=(destination or ROOT/'dist')/'travel-planner-1.1.0-windows-x64'
     if build.exists(): raise RuntimeError('Build already exists; nothing deleted')
     manifest=json.loads((ROOT/'bundled_data/manifest.json').read_text(encoding='utf-8'))
     for name,digest in manifest['files'].items():
@@ -17,7 +17,7 @@ def build(runtime, destination=None):
     shutil.copy2(ROOT/'scripts/launch_portable.py',build/'launch.py')
     for name in ('.env.example','README.md','THIRD_PARTY_NOTICES.md','CHANGELOG.md'): shutil.copy2(ROOT/name,build/name)
     revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
-    metadata={'version':'1.0.1','revision':revision,'files':{str(p.relative_to(build)).replace('\\','/'):hashlib.sha256(p.read_bytes()).hexdigest() for folder in ('backend','frontend') for p in sorted((build/folder).rglob('*')) if p.is_file()}}
+    metadata={'version':'1.1.0','revision':revision,'files':{str(p.relative_to(build)).replace('\\','/'):hashlib.sha256(p.read_bytes()).hexdigest() for folder in ('backend','frontend') for p in sorted((build/folder).rglob('*')) if p.is_file()}}
     (build/'release.json').write_text(json.dumps(metadata,indent=2),encoding='utf-8')
     for name,args in [('start.bat',''),('start-lan.bat',' --lan')]:
         (build/name).write_text('@echo off\r\nchcp 65001 >nul\r\ncd /d "%~dp0"\r\nruntime\\python.exe launch.py'+args+'\r\npause\r\n',encoding='utf-8')

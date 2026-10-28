@@ -106,3 +106,23 @@ def test_shared_travel_references_are_printed_once():
     text = ''.join(page.extract_text() for page in reader.pages)
     assert text.count('共同住宿区') == 1 and text.count('共同美食') == 1
     assert '预约提醒' in text and '返程提醒' in text
+
+
+def test_driving_calendar_does_not_make_memo_only_pages():
+    days = []
+    for i in range(7):
+        days.append({'note': '驾驶约 3.9h · 游览与驾驶合计约 6.4h（另留餐饮和休息）',
+            'stay': {'town': f'第{i+1}天住宿参考区', 'price': '120-350/晚'},
+            'foods': {'dishes': [{'name': '当地特色美食'}]},
+            'items': [
+                {'spot': f'转场：出发地 → 第{i+1}天目的地', 'time': '09:00-13:13',
+                 'why': '驾驶约 3.2 小时，以导航复核；时间段含必要休息'},
+                {'spot': f'第{i+1}天风景区', 'time': '13:13-15:43', 'why': '目的地 · 预留约 2.5 小时游览',
+                 'time_reason': '参考时段：下午；开放时间待确认'},
+                {'spot': '转场：风景区 → 次日目的地', 'time': '15:43-16:25',
+                 'why': '驾驶约 0.7 小时，以导航复核；时间段含必要休息'}]})
+    response = client.post('/api/plans/export-pdf', json={'name': '七日自驾行程', 'daily': days})
+    reader = PdfReader(BytesIO(response.content))
+    assert len(reader.pages) == 3
+    text = ''.join(page.extract_text() for page in reader.pages)
+    assert '第7天风景区' in ''.join(text.split()) and '第7天住宿参考区' in ''.join(text.split())

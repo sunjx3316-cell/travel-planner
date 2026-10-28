@@ -1,9 +1,11 @@
-const CACHE_NAME = "travel-planner-shell-v1.0.1";
+const CACHE_NAME = "travel-planner-shell-v1.1.0";
 const APP_SHELL = [
   "/",
   "/index.html",
   "/css/style.css?v=1.0.1",
-  "/js/app.js?v=1.0.1",
+  "/js/app.js?v=1.1.0",
+  "/js/mode.js?v=1.1.0",
+  "/css/mode.css?v=1.1.0",
   "/js/workshop.js?v=1.0.1",
   "/css/rail.css?v=1.0.1",
   "/js/rail.js?v=1.0.1",

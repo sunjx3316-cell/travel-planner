@@ -16,3 +16,13 @@ os.environ["DEEPSEEK_API_KEY"] = ""
 # The limiter is enabled by default in deployed environments.  Most integration
 # tests exercise unrelated endpoints, so keep them independent of call order.
 os.environ["RATE_LIMIT_ENABLED"] = "0"
+
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def ai_config(tmp_path, monkeypatch):
+    from backend.ai import settings
+    config = settings.AISettings(tmp_path / "ai_settings.json")
+    monkeypatch.setattr(settings, "_settings", config)
+    return config

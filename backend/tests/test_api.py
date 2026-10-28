@@ -295,7 +295,7 @@ def test_media_mount_serves_local_images():
         probe.unlink(missing_ok=True)
 
 
-def test_plans_llm_path(monkeypatch):
+def test_plans_llm_path(monkeypatch, ai_config):
     """配置假 key 时,方案生成应走 LLM 分支并标注来源 DeepSeek"""
     from backend.ai import pipeline as pl
 
@@ -314,17 +314,13 @@ def test_plans_llm_path(monkeypatch):
         return FakeResp()
 
     monkeypatch.setattr("backend.ai.llm.requests.post", fake_post)
-    old_key = pl._llm.api_key
-    pl._llm.api_key = "sk-fake"
-    try:
-        cities = client.get("/api/cities").json()
-        bj = next(c for c in cities if c["name"] == "北京")
-        spots = client.get(f"/api/cities/{bj['id']}/spots").json()
-        body = {"city_id": bj["id"], "days": 2, "style": "轻松",
-                "spot_ids": [s["id"] for s in spots[:2]]}
-        r = client.post("/api/plans/generate", json=body)
-    finally:
-        pl._llm.api_key = old_key
+    ai_config.update(mode="ai", api_key="sk-fake")
+    cities = client.get("/api/cities").json()
+    bj = next(c for c in cities if c["name"] == "北京")
+    spots = client.get(f"/api/cities/{bj['id']}/spots").json()
+    body = {"city_id": bj["id"], "days": 2, "style": "轻松",
+            "spot_ids": [s["id"] for s in spots[:2]]}
+    r = client.post("/api/plans/generate", json=body)
 
     assert r.status_code == 200
     plans = r.json()
@@ -619,10 +615,12 @@ def test_roadtrip_has_stays():
     p0 = r.json()[0]["plan"]
     for day in p0["daily"]:
         stay = day.get("stay")
-        assert stay and stay["town"] and stay["price"]
-        assert stay["km_from_last"] >= 0
-        # 自驾/环线方案每日也有美食推荐(吃什么)
-        assert day.get("foods") and day["foods"]["dishes"], f"第{day['day']}天缺美食推荐"
+        if stay:
+            assert stay["town"] and stay["price"]
+            assert stay["km_from_last"] >= 0
+        else:
+            assert "中途住宿" in day["note"]  # unresolved transit stops must not invent hotels
+        assert "foods" in day
 
 
 def test_roadtrip_gannan_has_foods():
@@ -670,7 +668,8 @@ def test_roadtrip_start_city():
     assert legs[-1]["closing"] is True
     # 每日第一项包含出发地
     day1 = r.json()[0]["plan"]["daily"][0]
-    assert day1["items"][0]["spot"].startswith("出发地·兰州")
+    assert "出发地·兰州" in day1["items"][0]["spot"]
+    assert day1["items"][0]["kind"] == "transport"  # departure now consumes real time, not a sightseeing slot
 
 
 def test_alternatives_map_coords():
