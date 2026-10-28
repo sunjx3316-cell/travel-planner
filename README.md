@@ -1,8 +1,8 @@
 # 旅行智规 Travel Planner
 
-## v1.0 快速使用（2026-10-28）
+## v1.0.1 快速使用（2026-10-28）
 
-Windows 用户从 [Releases](https://github.com/sunjx3316-cell/travel-planner/releases/latest) 下载 `travel-planner-1.0.0-windows-x64.zip`，**完整解压**后双击 `start.bat`，访问 http://127.0.0.1:8000/ 。无需安装 Python，无需填写 Key。关闭启动窗口停止服务。端口占用时先关闭旧版，勿同时启动两个实例。
+Windows 用户从 [Releases](https://github.com/sunjx3316-cell/travel-planner/releases/latest) 下载 `travel-planner-1.0.1-windows-x64.zip`，**完整解压**后双击 `start.bat`，访问 http://127.0.0.1:8000/ 。无需安装 Python，无需填写 Key。关闭启动窗口停止服务。端口占用时先关闭旧版，勿同时启动两个实例。
 
 同 Wi-Fi 手机体验可运行 `start-lan.bat`，仅在可信局域网放行防火墙；默认启动不会开放局域网。请勿直接将本地单用户版本暴露公网。
 

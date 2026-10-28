@@ -100,11 +100,35 @@
     };
     dialog.showModal(); frame.src = url.href;
   }
+  function acceptConfirmed(journey) {
+    if (targetWorkbench) {
+      if (state.workbench !== targetWorkbench) throw Error('编辑草稿已变化，请重新打开铁路规划');
+      const rows=attach(targetWorkbench.plan,journey), wb=targetWorkbench;
+      mutateWorkshop(draft=>{draft.plan.rail_journeys=rows;});
+      if (wb.storageError) throw Error('已加入草稿，但本机保存失败，请勿关闭');
+      close();switchTab('plans');
+      flash('铁路已加入当前草稿；点“确认行程”后随最终安排导出');
+      return;
+    }
+    // The railway's explicit final confirmation updates the travel final,
+    // not the unrelated scratch library. One atomic write preserves day cards.
+    const previous=finalPlan();
+    const plan=previous ? clonePlan(previous) : {name:journey.from+' → '+journey.to,summary:'铁路行程',daily:[{day:1,items:[]}],tips:[]};
+    plan.rail_journeys=attach(plan,journey);
+    localStorage.setItem(FINAL_PLAN_STORAGE_KEY,JSON.stringify(plan));
+    close();renderTrip();switchTab('trip');
+    flash('已加入旅行最终安排，现在导出 PDF 会包含这程铁路');
+  }
   window.addEventListener('message', event => {
     if (!dialog || event.origin !== location.origin || event.source !== frame?.contentWindow || event.data?.session !== session) return;
     const type = event.data.type;
-    if (!['rail:ready','rail:selection','rail:commit'].includes(type)) return;
+    if (!['rail:ready','rail:selection','rail:commit','rail:finalized'].includes(type)) return;
     try { candidate = event.data.journey ? validate(event.data.journey) : null; } catch { candidate = null; }
+    if (type === 'rail:finalized') {
+      try { if (!candidate) throw Error('铁路方案不完整，原行程未改动'); acceptConfirmed(candidate); }
+      catch (error) { flash(error.message || '保存失败，原行程未改动'); }
+      return;
+    }
     if (type === 'rail:commit' && committing) {
       clearTimeout(commitTimer); committing = false;
       if (candidate) {
@@ -150,5 +174,5 @@
     switchTab('trip');
     document.querySelector('#tab-trip').innerHTML = `<div class="trip-rail-heading"><h3>独立交通清单</h3><button class="btn sm" onclick="renderTrip()">返回最终行程</button></div>${section()}`;
   }
-  window.TravelRail = {open, close, section, read, validate, signature, planRows, attach, editFinal, useSaved, printSection, renderLibrary};
+  window.TravelRail = {open, close, section, read, validate, signature, planRows, attach, editFinal, useSaved, printSection, renderLibrary, acceptConfirmed};
 })();

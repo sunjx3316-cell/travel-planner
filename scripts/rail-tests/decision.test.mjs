@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {transferRisk,decisionMetrics,decisionRanks,decodeWorkspace,writeWorkspace,finalizeDecision,recoverComparison,validateRiskRules} from '../../frontend/rail/decision-model.js';
+import {transferRisk,decisionMetrics,decisionRanks,decodeWorkspace,writeWorkspace,finalizeDecision,recoverComparison,validateRiskRules,removeFinalDecision} from '../../frontend/rail/decision-model.js';
 import {savePlanRecord,restorePlan,priceRoute,routeSelection} from '../../frontend/rail/saved-plans.js';
 import {finalText} from '../../frontend/rail/decision-view.js';
 import {plan,fareKey} from '../../frontend/rail/router.js';
@@ -10,6 +10,13 @@ const network={meta:{version:'20261020',startDate:'20261020',endDate:'20261022'}
 const options={origin:[0],destination:[3],date:'20261020',earliest:360,maxTransfers:1,trainType:'all',seatPreference:'standard',valueOfTime:40,waypoints:[],fixedLegs:[]};
 const fields={from:'天津',to:'重庆',date:'2026-10-20',time:'06:00'};
 const make=(name='A')=>savePlanRecord(network,{name,fields,options});
+test('delete a confirmed rail entry without touching comparison/recovery or original data',()=>{
+  const original={version:1,plans:[{id:'draft'}],finals:[{id:'a'},{id:'b'}],recovery:{plans:[{id:'old'}]}};
+  const next=removeFinalDecision(original,'a');
+  assert.deepEqual(next.finals,[{id:'b'}]);assert.equal(original.finals.length,2);
+  assert.equal(next.plans,original.plans);assert.equal(next.recovery,original.recovery);
+  assert.throws(()=>removeFinalDecision(next,'a'));
+});
 const route=(gap,cross=false,start=360)=>({departure:start,arrival:start+120+gap,verified:true,cost:100,legs:[{from:0,to:1,departure:start,arrival:start+60},{from:cross?2:1,to:3,departure:start+60+gap,arrival:start+120+gap}]});
 
 test('transfer risk boundaries use worst margin and distinguish cross-station from same-station',()=>{

@@ -53,6 +53,10 @@ export function finalizeDecision(network,workspace,p,route,rules=DEFAULT_RISK,no
   const final={id:crypto.randomUUID(),savedAt:now,plan,itinerary,reference:{metrics,fares:route.legs.map(l=>({train:l.train,from:l.from,to:l.to,cost:l.fareVerified?l.cost:null,seatName:l.seatName||null,quotedAt:l.quotedAt||null})),rules:validateRiskRules(rules)}};
   return {version:1,plans:[],finals:[final,...workspace.finals],recovery:{plans:structuredClone(workspace.plans),finalId:final.id,savedAt:now}};
 }
+export function removeFinalDecision(workspace,id){
+  if(!workspace.finals.some(entry=>entry.id===id))throw new Error('这条已定行程已不存在，请刷新后查看。');
+  return {...workspace,finals:workspace.finals.filter(entry=>entry.id!==id)};
+}
 export function recoverComparison(workspace){
   if(!workspace.recovery)throw new Error('没有可恢复的对比库。');
   if(workspace.plans.length)throw new Error('当前对比库已有新方案，请先处理新方案再恢复。');

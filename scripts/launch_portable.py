@@ -15,7 +15,7 @@ def main():
             try: urllib.request.urlopen(url+'/api/status',timeout=1).close();webbrowser.open(url);return
             except OSError: time.sleep(.5)
     threading.Thread(target=browser,daemon=True).start()
-    print('Travel Planner 1.0.0:',url,'| Ctrl+C to stop')
+    print('Travel Planner 1.0.1:',url,'| Ctrl+C to stop')
     import uvicorn
     uvicorn.run('backend.app.main:app',host='0.0.0.0' if args.lan else '127.0.0.1',port=args.port)
 if __name__=='__main__': main()

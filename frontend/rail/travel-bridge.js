@@ -23,6 +23,17 @@ export function configureTravelBridge(reader) {
 }
 export function clearTravelSelection() { send('rail:selection'); }
 export function publishTravelSelection() { send('rail:selection', readSelection()); }
+// A saved decision is different from a preview. Keep its historical price
+// and exact train sections; reopening it must not fabricate a fresh quote.
+export function savedFinalJourney(entry) {
+  const {itinerary, reference, plan} = entry;
+  return {id:entry.id, savedAt:entry.savedAt, snapshot:plan.snapshot,
+    date:itinerary.date, from:itinerary.legs[0].from, to:itinerary.legs.at(-1).to,
+    legs:itinerary.legs, duration:reference.metrics.duration,
+    transfers:reference.metrics.transfers, cost:reference.metrics.cost,
+    risk:reference.metrics.risk.label};
+}
+export function publishSavedFinal(entry) { send('rail:finalized', savedFinalJourney(entry)); }
 export function toTravelJourney(network, route, options, quotes, riskRules) {
   if (!route?.legs?.length || !options) return null;
   try {

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 globalThis.location = new URL('http://localhost/rail/');
 globalThis.window = {};
 globalThis.parent = window;
-const {toTravelJourney} = await import('../frontend/rail/travel-bridge.js');
+const {toTravelJourney, savedFinalJourney} = await import('../frontend/rail/travel-bridge.js');
 const {plan, fareKey} = await import('../frontend/rail/router.js');
 const trip = (name, stops, times) => [name, 0, stops, times, times, stops.map((_,i)=>i*100), '', 'G'];
 const network = {meta:{version:'20261020',startDate:'20261020',endDate:'20261022'},
@@ -19,6 +19,9 @@ assert.equal(result.cost, null);
 assert.equal(result.risk, '需留意');
 assert.equal(toTravelJourney(network, route, options, {}, {same:5,cross:90}).risk, '余量较充足', 'retain the user-selected transfer rules');
 assert.equal(result.legs.length, 2);
+const historical=savedFinalJourney({id:'saved',savedAt:'2026-10-20T00:00:00Z',plan:{snapshot:'20261020'},
+  itinerary:{date:result.date,legs:result.legs},reference:{metrics:{duration:result.duration,transfers:1,cost:966,risk:{label:'需留意'}}}});
+assert.equal(historical.id,'saved');assert.equal(historical.cost,966);assert.deepEqual(historical.legs,result.legs);
 assert.equal(result.legs[1].departure, 1500, 'cross-midnight day offset survives handoff');
 assert.equal(toTravelJourney(network, {...route, legs:route.legs.slice(0,1)}, options, {}), null, 'reject partial route');
 const quotes = {};

@@ -2,6 +2,9 @@
 import argparse, hashlib, json, os, socket, sqlite3, subprocess, time, urllib.request, urllib.error
 from pathlib import Path
 def smoke(root):
+    release=json.loads((root/'release.json').read_text(encoding='utf-8'))
+    assert release['version']=='1.0.1'
+    for name,digest in release['files'].items(): assert hashlib.sha256((root/name).read_bytes()).hexdigest()==digest,name
     manifest=json.loads((root/'bundled_data/manifest.json').read_text(encoding='utf-8'))
     for name,digest in manifest['files'].items(): assert hashlib.sha256((root/'bundled_data'/name).read_bytes()).hexdigest()==digest,name
     with socket.socket() as s: s.bind(('127.0.0.1',0)); port=s.getsockname()[1]
@@ -17,8 +20,12 @@ def smoke(root):
                 try: status=json.loads(get('/api/status'));break
                 except OSError: time.sleep(.25)
             else: raise RuntimeError('Startup timeout')
-            assert status['version']=='1.0.0' and not status['llm_available']
+            assert status['version']=='1.0.1' and not status['llm_available']
             assert b'data-action="rail"' in get('/')
+            assert b'rail:finalized' in get('/js/rail.js')
+            assert b'publishSavedFinal(next.finals[0])' in get('/rail/comparison.js')
+            assert b'onDelete:id' in get('/rail/comparison.js')
+            assert '撤销删除'.encode() in get('/rail/decision-view.js')
             conn=sqlite3.connect(root/'data/travel.db')
             assert conn.execute('SELECT COUNT(*) FROM spots').fetchone()[0]==manifest['counts']['spots']
             assert conn.execute('SELECT COUNT(*) FROM cart_items').fetchone()[0]==0
@@ -26,6 +33,7 @@ def smoke(root):
             assert len(get(path))>100
             detail=json.loads(get(f'/api/spots/{sid}'))
             assert detail['curated_review'] and detail['image_assets']
+            conn.close()
             assert b'<html' in get('/rail/').lower()
             for path in ('/media/travel.db','/media/xhs_cookies.json','/bundled_data/travel.db'):
                 try: get(path);raise AssertionError('Private data served: '+path)

@@ -1,8 +1,9 @@
 import {STORAGE_KEY,MAX_PLANS,savePlanRecord,restorePlan,restoreChoice,routeSelection,priceRoute,comparisonKey} from './saved-plans.js';
 import {fareKey,dateShift} from './router.js';
 import {crossTransfers} from './transfers.js';
-import {DEFAULT_RISK,validateRiskRules,transferRisk,decisionMetrics,decisionRanks,decodeWorkspace,writeWorkspace,finalizeDecision,recoverComparison} from './decision-model.js';
+import {DEFAULT_RISK,validateRiskRules,transferRisk,decisionMetrics,decisionRanks,decodeWorkspace,writeWorkspace,finalizeDecision,recoverComparison,removeFinalDecision} from './decision-model.js';
 import {renderDecision,renderFinals,finalText} from './decision-view.js';
+import {embedded, publishSavedFinal} from './travel-bridge.js';
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const time=m=>`${String(Math.floor(m/60)%24).padStart(2,'0')}:${String(m%60).padStart(2,'0')}${m>=1440?' +'+Math.floor(m/1440)+'天':''}`;
@@ -12,6 +13,7 @@ const date=s=>`${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}`;
 export function initComparison({network,readEditor,loadEditor,newEditor,preview,enter,leave,toast,quotes,onFinal}){
   let plans=[],states=new Map(),activeId=null,open=false,previewing=false,running=false,generation=0,matcher,abort,pending,readError='',removed,lastStored;
   let finals=[],recovery=null,view='library',analysisGroup='',decisionSelected=null,rules={...DEFAULT_RISK},avoidHigh=true,lastPricingState='';
+  let deletedFinal=null;
   try{lastStored=localStorage.getItem(STORAGE_KEY);({plans,finals,recovery}=decodeWorkspace(lastStored));if(!plans.length&&finals.length)view='finals';}catch(e){readError=e.message||'浏览器无法读取本地方案。';}
   const workspace=()=>({version:1,plans,finals,recovery});
   function commit(next,nextView=view){
@@ -42,6 +44,7 @@ export function initComparison({network,readEditor,loadEditor,newEditor,preview,
       const options=state(p).options;
       const next=finalizeDecision(network,workspace(),p,route,rules);commit(next,'finals');states.clear();activeId=null;removed=null;$('undo-plan').hidden=true;
       onFinal?.(route,options,rules);
+      if (embedded) publishSavedFinal(next.finals[0]);
       $('plan-name').value=nextName();$('save-plan').textContent='加入对比库';$('comparison-page').scrollTop=0;toast('最终行程已保存，对比库已清空。');
     }catch(e){toast(e.message);}
   }
@@ -54,6 +57,22 @@ export function initComparison({network,readEditor,loadEditor,newEditor,preview,
   }
   function renderFinalStep(){
     renderFinals($('final-content'),{finals,recovery,planCount:plans.length,network,
+      canUndoDelete:!!deletedFinal,
+      onDelete:id=>{try{
+        const index=finals.findIndex(f=>f.id===id),entry=finals[index];
+        if(!entry)throw new Error('这条行程已不存在。');
+        if(!window.confirm('删除这条铁路已定行程？仅删除本页记录，已加入旅行安排的副本不受影响。当前页面可撤销。'))return;
+        const undo={entry,index},previous=deletedFinal;deletedFinal=undo;
+        try{commit(removeFinalDecision(workspace(),id),'finals');}catch(e){deletedFinal=previous;throw e;}
+        toast('已删除，可在本页撤销。');
+      }catch(e){toast(e.message);}},
+      onUndoDelete:()=>{try{
+        if(!deletedFinal)return;
+        const undo=deletedFinal,next=[...finals];next.splice(Math.min(undo.index,next.length),0,undo.entry);deletedFinal=null;
+        try{commit({...workspace(),finals:next},'finals');}catch(e){deletedFinal=undo;throw e;}
+        toast('已恢复这条已定行程。');
+      }catch(e){toast(e.message);}},
+      onTravel:embedded ? id=>{try{publishSavedFinal(finals.find(f=>f.id===id));}catch(e){toast(e.message);}} : null,
       onLibrary:()=>{view='library';render();},onRecover:()=>{try{commit(recoverComparison(workspace()),'library');toast('已恢复对比库，最终行程仍保留。');}catch(e){toast(e.message);}},
       onPreview:id=>{try{const f=finals.find(f=>f.id===id),r=restorePlan(network,f.plan);showPreview(priceRoute(network,r.route,r.options,quotes),r.options,f.plan.name+' · 已定行程');}catch(e){toast(e.message);}},
       onCopy:async id=>{try{await navigator.clipboard.writeText(finalText(finals.find(f=>f.id===id)));toast('最终行程已复制。');}catch{toast('复制失败，可以使用导出文本。');}},

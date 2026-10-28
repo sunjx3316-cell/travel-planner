@@ -32,8 +32,24 @@ export function finalText(entry){
   const {itinerary,reference}=entry,m=reference.metrics;
   return ['山海铁道 · '+entry.plan.name,'出发日期：'+itinerary.date,'保存于：'+localTime(entry.savedAt),'总历时：'+duration(m.duration),'保存时铁路票价：'+money(m.cost)+'（历史参考，需重新核对）','换乘风险：'+m.risk.label+'（同站预留 '+reference.rules.same+' 分钟，跨站 '+reference.rules.cross+' 分钟）',...itinerary.legs.flatMap((l,i)=>[...(i?[`${itinerary.legs[i-1].to===l.from?'同站':'跨站'}换乘：${itinerary.legs[i-1].to} → ${l.from}，间隔 ${l.departure-itinerary.legs[i-1].arrival} 分钟`]:[]),`${i+1}. ${l.train} ${l.from} ${time(l.departure)} → ${l.to} ${time(l.arrival)}`]),'市内交通自行安排，费用另计；不判断余票、取消、晚点或实际通行时间。'].join('\n');
 }
-export function renderFinals(root,{finals,recovery,planCount,network,onPreview,onCopy,onExport,onRecover,onLibrary}){
+export function renderFinals(root,{finals,recovery,planCount,network,onPreview,onCopy,onExport,onRecover,onLibrary,onTravel,onDelete,onUndoDelete,canUndoDelete}){
   root.innerHTML=`<div class="decision-title"><div><span class="eyebrow">YOUR CHOSEN JOURNEYS</span><h2 tabindex="-1">已定行程</h2><p>最终选择单独保留。票价显示保存时的参考值，不作为当前报价。</p></div><button id="finals-library">返回对比库</button></div>${recovery?`<div class="final-recovery"><span>最近一次清空了 ${recovery.plans.length} 条对比方案。最终行程已保存。</span><button id="recover-library" ${planCount?'disabled':''}>恢复这次清空</button>${planCount?'<small>已有新方案时暂不恢复，避免覆盖。</small>':''}</div>`:''}<div class="final-list">${finals.map(f=>{const it=f.itinerary,m=f.reference.metrics;return `<article class="final-card"><div><span class="final-label">已保存</span><h3>${esc(f.plan.name)}</h3><p>${esc(it.date)} · ${esc(it.legs[0].from)} → ${esc(it.legs.at(-1).to)}</p><small>保存于 ${esc(localTime(f.savedAt))}</small></div><div class="final-metrics"><span>总历时 <b>${duration(m.duration)}</b></span><span>保存时铁路票价 <b>${money(m.cost)}</b></span><span>换乘风险 <b class="risk-text-${m.risk.level}">${esc(m.risk.label)}</b></span></div><p class="final-rules">按保存时设置：同站预留 ${f.reference.rules.same} 分钟，跨站 ${f.reference.rules.cross} 分钟；未计入晚点、实时路况及市内交通费用。</p><details class="comparison-legs"><summary>展开 ${it.legs.length} 段车次</summary>${it.legs.map((l,i)=>`${i?`<p class="${it.legs[i-1].to!==l.from?'saved-cross':''}">${it.legs[i-1].to!==l.from?'跨站':'同站'}换乘 · ${esc(it.legs[i-1].to)} → ${esc(l.from)} · 间隔 ${l.departure-it.legs[i-1].arrival} 分钟</p>`:''}<p><b>${esc(l.train)}</b> ${esc(l.from)} → ${esc(l.to)}<small>${time(l.departure)} → ${time(l.arrival)}</small></p>`).join('')}</details><div class="final-actions"><button data-final-map="${esc(f.id)}" ${f.plan.snapshot!==String(network.meta.version)?'disabled':''}>地图 / 线路</button><button data-final-copy="${esc(f.id)}">复制行程</button><button data-final-export="${esc(f.id)}">导出文本</button></div>${f.plan.snapshot!==String(network.meta.version)?'<small>时刻表版本已变化；保留文字记录，地图回放暂不可用。</small>':''}</article>`;}).join('')||'<p class="decision-empty">还没有最终行程。在可视化对比中选定并保存后，会出现在这里。</p>'}</div>`;
   root.querySelector('#finals-library').onclick=onLibrary;root.querySelector('#recover-library')?.addEventListener('click',onRecover);
+  if(canUndoDelete){
+    const undo=document.createElement('button');undo.textContent='撤销删除';undo.className='final-undo-delete';undo.onclick=onUndoDelete;
+    root.querySelector('.decision-title').append(undo);
+  }
+  if(onDelete)for(const card of root.querySelectorAll('.final-card')){
+    const id=card.querySelector('[data-final-export]').getAttribute('data-final-export');
+    const button=document.createElement('button');button.textContent='删除';button.className='final-delete';
+    button.setAttribute('aria-label','删除 '+finals.find(f=>f.id===id).plan.name);
+    button.onclick=()=>onDelete(id);card.querySelector('.final-actions').append(button);
+  }
+  if (onTravel) for (const card of root.querySelectorAll('.final-card')) {
+    const id=card.querySelector('[data-final-export]').getAttribute('data-final-export');
+    const button=document.createElement('button');button.textContent='加入旅行安排';
+    button.setAttribute('data-final-travel',id);button.onclick=()=>onTravel(id);
+    card.querySelector('.final-actions').prepend(button);
+  }
   for(const [attr,fn] of [['data-final-map',onPreview],['data-final-copy',onCopy],['data-final-export',onExport]])root.querySelectorAll('['+attr+']').forEach(b=>b.onclick=()=>fn(b.getAttribute(attr)));
 }
