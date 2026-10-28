@@ -283,12 +283,14 @@ def test_media_mount_serves_local_images():
     """采集图片经 /media 可访问(挂载必须优先于前端兜底)"""
     from backend.app.main import DATA_DIR
 
-    probe = DATA_DIR / "media_probe.txt"
+    probe = DATA_DIR / "images" / "media_probe.txt"
     probe.write_text("probe", encoding="utf-8")
     try:
-        r = client.get("/media/media_probe.txt")
+        r = client.get("/media/images/media_probe.txt")
         assert r.status_code == 200
         assert r.text == "probe"
+        assert client.get('/media/travel.db').status_code == 404
+        assert client.get('/media/xhs_cookies.json').status_code == 404
     finally:
         probe.unlink(missing_ok=True)
 

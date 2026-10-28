@@ -1,0 +1,21 @@
+{
+  "title": "China Railway GTFS",
+  "publisher": "wensimehrp (Jeremy Gao)",
+  "source": "https://github.com/wensimehrp/chinese-railway-gtfs/releases/tag/gtfs-20261020-044926",
+  "license": "CC BY 4.0",
+  "coordinateSystem": "WGS84",
+  "version": "20261020",
+  "startDate": "20261005",
+  "endDate": "20270109",
+  "sha256": "1c6f4883b7ebf7bf91a9fb60b402282ba456b44dbe8cac192f59b4209c6453d1",
+  "tripCount": 11673,
+  "stationCount": 3173,
+  "shapeCount": 6518,
+  "excludedTrips": {
+    "non_monotonic_times": 202
+  },
+  "fare": {
+    "type": "estimate",
+    "method": "经停站间球面距离合计 × 1.18 × 系数；G 0.46、D/C 0.34、普速 0.14 元/公里；每张票最低 5 元，按 0.5 元取整。仅为模型估算，不是官方票价。"
+  }
+}

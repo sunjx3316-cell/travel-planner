@@ -11,6 +11,7 @@ __pycache__/
 # 数据与凭证
 data/*.db
 data/images/
+output/
 data/raw/
 data/xhs_cookies.json
 data/xhs_daily_count.json

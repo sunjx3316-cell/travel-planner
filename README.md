@@ -1,5 +1,23 @@
 # 旅行智规 Travel Planner
 
+## v1.0 快速使用（2026-10-28）
+
+Windows 用户从 [Releases](https://github.com/sunjx3316-cell/travel-planner/releases/latest) 下载 `travel-planner-1.0.0-windows-x64.zip`，**完整解压**后双击 `start.bat`，访问 http://127.0.0.1:8000/ 。无需安装 Python，无需填写 Key。关闭启动窗口停止服务。端口占用时先关闭旧版，勿同时启动两个实例。
+
+同 Wi-Fi 手机体验可运行 `start-lan.bat`，仅在可信局域网放行防火墙；默认启动不会开放局域网。请勿直接将本地单用户版本暴露公网。
+
+顶部 **铁路** 可单独查询；**方案 → 选择铁路** 或 **工作坊 → 铁路交通** 把完整路线加入当前草稿；点 **确认行程** 后，在 **我的行程** 查看并导出日历式 PDF（含铁路页）。独立交通清单不会自动混入最终方案，可从工作坊手动选用。铁路按实际出发日期保存，不会自动压缩景点安排或推算每天交通冲突。
+
+发行版包含 `bundled_data/manifest.json` 中列出的全部评价目录和已核验图片台账，图片署名与来源保留；弱证据不是已证实共识。无网络也可查看内置资料、编辑、用规则生成方案和导出 PDF；AI 实时生成、在线票价核验及未缓存的省级地图等在线能力需要网络。铁路是静态时刻快照，不是实时售票或余票保证。
+
+源码部署（Python 3.13）：`python -m venv .venv`，安装 `pip install -r backend/requirements.txt`，然后 `python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000`。首次启动自动从随仓库附带的只读资料创建 `data/travel.db`，不会覆盖已有库。个人清单、保存方案及密钥不会随发行版分发。可选 API Key 请自行复制 `.env.example` 为 `.env` 后配置。
+
+开发者打包使用 `python scripts/build_release.py --runtime <已安装后端依赖的嵌入式Python目录>`，生成全新目录与 SHA-256 校验文件，不覆盖运行中的旧版。`scripts/build_portable.py` 是旧版构建脚本，不用于本次发行。
+
+升级请保留旧版文件夹及浏览器数据作为备份，新版解压到新文件夹；不要把旧库直接覆盖到新版，否则会丢失更新资料。浏览器草稿保存在相同地址的本机存储，不提供跨设备同步。
+
+下文保留项目早期功能说明；最新数据范围以随包 manifest 为准，早期示例数量与旧打包说明不再作为当前版本承诺。
+
 开局一张中国地图,选出想去的城市和景区,AI 整合攻略口碑(含暗广过滤与避雷共识),生成多套行程方案。
 
 ## 功能
@@ -38,6 +56,25 @@
   `scripts/explore_route.py` 以环线每个点位为中心做周边搜索,自动发现沿途新景点(需高德 AMAP_KEY)
 
 ## 快速开始
+
+### 铁路工作台已整合（v0.5）
+
+无需单独启动 rail-atlas，继续打开旅行智规的 `http://127.0.0.1:8000/`。
+“城市 → 出发地旁 → 铁路交通”，或“我的行程 → 规划铁路交通”进入。
+支持铁路推荐、自由编辑、多方案对比；选定完整路线后，点顶部“加入交通清单”，
+会返回“我的行程”。交通清单单独保存在本机浏览器，不自动改动每日景点安排，
+当前日历 PDF 仍导出景点日程，不包含独立交通清单。
+
+铁路页面只有打开时才装载数据和计算线程，关闭后卸载，主地图不叠加铁路地图。
+匿名票价查询统一走 `/api/rail/fares`：每 IP 每分钟 12 批、每批最多 8 个区间、
+全局单批处理、25 秒网络预算、10 分钟缓存。遇到验证或不可用则保持“待核价”，
+不读取账号，不购票，不绕过访问限制。静态时刻表、已保存参考价和换乘余量都不是
+余票或实际开行保证。来源与授权说明见 [铁路来源](frontend/rail/NOTICE.md)。
+
+本次地图小标使用原生圆点；已移除拖动/绘制结束时触发的自动移位与重新绘制逻辑。
+离线回归：`node scripts/test_map.cjs`、`node scripts/test_workshop.cjs`、
+`node scripts/test_rail_integration.cjs`、`node scripts/test_rail_bridge.mjs`、
+`node --test scripts/rail-tests/*.test.mjs`，以及 `python -m pytest backend/tests/test_rail_fares.py`。
 
 ```powershell
 # 1. 首次:安装依赖(沙箱内 pip 不可用,使用引导脚本)

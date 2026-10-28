@@ -13,6 +13,11 @@ SCHEMA_PATH = Path(__file__).resolve().parent / "schema.sql"
 
 def get_conn() -> sqlite3.Connection:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    bundled = PROJECT_ROOT / 'bundled_data' / 'travel.db'
+    if not DB_PATH.exists() and 'TRAVEL_DB_PATH' not in os.environ and bundled.is_file():
+        with sqlite3.connect(bundled.as_uri() + '?mode=ro', uri=True) as source:
+            with sqlite3.connect(DB_PATH) as target:
+                source.backup(target)
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
@@ -49,6 +54,8 @@ def init_db() -> None:
             except sqlite3.OperationalError:
                 pass
         conn.commit()
+        if conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='release_metadata'").fetchone():
+            return  # Authoritative curated snapshot; do not resurrect deleted demo places.
         count = conn.execute("SELECT COUNT(*) AS c FROM cities").fetchone()["c"]
         if count == 0:
             seed.seed_all(conn)

@@ -1,8 +1,23 @@
 """Structured review imports preserve uncertainty, references, and application IDs."""
 import json
 import sqlite3
+import zipfile
+import pytest
 
-from backend.collector.curated_reviews import import_bundle
+from backend.collector.curated_reviews import import_bundle, read_bundle
+
+
+@pytest.mark.parametrize('filename', ['145地点评价补充.json', '144地点评价补充.json', '有增量地点补丁.json'])
+def test_supplement_filename_and_ambiguous_archive(tmp_path, filename):
+    bundle = {'format_version': 'poi-reviews-v1', 'pois': []}
+    path = tmp_path / 'supplement.zip'
+    with zipfile.ZipFile(path, 'w') as archive:
+        archive.writestr(filename, json.dumps(bundle))
+    assert read_bundle(path) == bundle
+    with zipfile.ZipFile(path, 'a') as archive:
+        archive.writestr('景点评价.json', json.dumps(bundle))
+    with pytest.raises(ValueError):
+        read_bundle(path)
 
 
 def test_import_exact_precedence_idempotence_and_unmatched_preservation():

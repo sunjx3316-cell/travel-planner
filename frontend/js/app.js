@@ -123,7 +123,47 @@ let lastPlans = [];
 const WORKBENCH_STORAGE_KEY = "travel-planner-workbench-plans-v1";
 const FINAL_PLAN_STORAGE_KEY = "travel-planner-final-plan-v1";
 
-const SPOT_CAT_COLOR = { 自然: "#16a34a", 人文: "#ea580c", 综合: "#2563eb" };
+const SPOT_CAT_COLOR = { 自然: "#237b68", 人文: "#ae7143", 综合: "#587ca1" };
+
+function mapPointLabel() {
+  return { show: true, position: 'right', distance: 6, color: '#25483e',
+    fontFamily: 'Microsoft YaHei, sans-serif', fontSize: 11, fontWeight: 500,
+    backgroundColor: 'rgba(255,255,255,.96)', borderColor: '#d7e4de', borderWidth: 1,
+    borderRadius: 4, padding: [4, 6],
+    formatter: p => (p.data?.markerNo ? p.data.markerNo + ' · ' : '') + (p.name.length > 16 ? p.name.slice(0, 15) + '…' : p.name) };
+}
+
+function mapTooltip(formatter) {
+  return { trigger: 'item', confine: true, padding: [12, 15], borderWidth: 0,
+    backgroundColor: 'rgba(255,255,255,.98)', textStyle: {color: '#25483e', fontSize: 12},
+    extraCssText: 'border-radius:12px;box-shadow:0 8px 28px #173d4920;line-height:1.8', formatter };
+}
+
+function zoomMap(factor) {
+  if (!chart) return;
+  const geo = chart.getOption().geo[0];
+  chart.setOption({geo: {zoom: Math.min(80, Math.max(.6, (geo.zoom || 1) * factor))}});
+}
+
+function fitMapPoints() {
+  if (!chart) return;
+  const option = chart.getOption();
+  const geo = option.geo[0];
+  const pts = option.series.filter(s => s.type === 'scatter').flatMap(s => s.data || [])
+    .map(p => ({lng: p.value[0], lat: p.value[1]}))
+    .filter(p => Number.isFinite(p.lng) && Number.isFinite(p.lat));
+  // Derive scale from the current projection, including the shorter viewport
+  // dimension. This works for both national and provincial GeoJSON extents.
+  if (!pts.length) { chart.setOption({geo: {center: null, zoom: 1}}); return; }
+  const pixels = pts.map(p => chart.convertToPixel({geoIndex: 0}, [p.lng, p.lat]));
+  const spanX = Math.max(...pixels.map(p => p[0])) - Math.min(...pixels.map(p => p[0]));
+  const spanY = Math.max(...pixels.map(p => p[1])) - Math.min(...pixels.map(p => p[1]));
+  const factor = Math.min(Math.max(100, chart.getWidth() - 240) / Math.max(1, spanX),
+    Math.max(80, chart.getHeight() - 190) / Math.max(1, spanY), 4);
+  chart.setOption({geo: {center: [(Math.min(...pts.map(p => p.lng)) + Math.max(...pts.map(p => p.lng))) / 2,
+    (Math.min(...pts.map(p => p.lat)) + Math.max(...pts.map(p => p.lat))) / 2],
+    zoom: Math.min(80, Math.max(.6, (geo.zoom || 1) * factor))}});
+}
 
 const MUNICIPALITY = { "北京市": "北京", "上海市": "上海", "天津市": "天津", "重庆市": "重庆" };
 
@@ -137,17 +177,20 @@ async function initMap() {
   chart = echarts.init($("#map"));
   renderChinaMap();
   chart.on("click", onMapClick);
-  window.addEventListener("resize", () => chart && chart.resize());
+  // Marker coordinates are native geo points. No roaming/render callback may
+  // call setOption: doing so can reset the map transform while the user drags.
+  window.addEventListener("resize", () => { if (chart) chart.resize(); });
   $("#map-back").addEventListener("click", renderChinaMap);
 }
 
 function baseGeoOption() {
   return {
     roam: true,
-    itemStyle: { areaColor: "#cfe8e1", borderColor: "#0e7c66", borderWidth: 0.8 },
+    scaleLimit: { min: .6, max: 80 },
+    itemStyle: { areaColor: "#e2ece5", borderColor: "#a8c4b7", borderWidth: 0.8 },
     emphasis: {
       label: { show: true, color: "#0a5c4c" },
-      itemStyle: { areaColor: "#8fd3c2" },
+      itemStyle: { areaColor: "#d1e4d8" },
     },
     label: { show: false, fontSize: 9 },
   };
@@ -195,7 +238,7 @@ async function renderProvinceMap(provinceName) {
   } catch (e) {
     provinceSpots = [];
   }
-  renderProvinceSpots();
+  renderProvinceSpots(true);
 }
 
 function setMapLayer(layer) {
@@ -205,7 +248,7 @@ function setMapLayer(layer) {
   if (mapLevel === "province") renderProvinceSpots();
 }
 
-function renderProvinceSpots() {
+function renderProvinceSpots(resetView = false) {
   // 城市选择阶段不铺满全部景点。地图亮点只代表用户已加入清单的项目，
   // 因此加入/移除清单后地图能立即与计划意图保持一致。
   const cartIds = new Set(state.cart.map((item) => item.spot_id));
@@ -218,46 +261,43 @@ function renderProvinceSpots() {
   else if (mapLayer === "spot") { spotList = scenic; foodList = []; }
   else { spotList = scenic; foodList = streets; }
   spotList = spotList.filter((s) => spotFilter === "全部" || s.category === spotFilter);
+  const previousGeo = !resetView && chart.getOption().geo?.[0];
+  const view = previousGeo?.map === 'province' ? {center: previousGeo.center, zoom: previousGeo.zoom} : {};
+  const pinData = (s, food = false) => ({name: s.name, value: [s.lng, s.lat, s.id], category: s.category,
+    cityName: s.city_name, isStreet: food,
+    markerNo: state.cart.findIndex(it => it.spot_id === s.id) + 1,
+    itemStyle: {color: food ? '#ae7143' : SPOT_CAT_COLOR[s.category] || '#587ca1'}});
+  const pinStyle = {animation: false, symbol: 'circle', symbolSize: 12,
+    itemStyle: {opacity: 1, borderColor:'#fff', borderWidth:2},
+    label: mapPointLabel(), labelLayout: {hideOverlap: true},
+    emphasis: {scale: false, label: {show: true, formatter: p => p.name, fontWeight: 700}}};
   const series = [{ type: "map", geoIndex: 0, silent: true, data: [] }];
   if (spotList.length) {
     series.push({
       type: "scatter", coordinateSystem: "geo",
-      data: spotList.map((s) => ({ name: s.name, value: [s.lng, s.lat, s.id], category: s.category, cityName: s.city_name })),
-      symbol: "circle", symbolSize: 9,
-      itemStyle: { color: (p) => SPOT_CAT_COLOR[p.data.category] || "#6b7280", borderColor: "#fff", borderWidth: 1 },
-      label: { show: spotList.length <= 14, position: "right", fontSize: 9, color: "#0a5c4c", formatter: (p) => p.name },
-      labelLayout: { hideOverlap: true },
-      emphasis: { itemStyle: { color: "#dc2626" } },
+      data: spotList.map(s => pinData(s)),
+      ...pinStyle,
       zlevel: 2,
     });
   }
   if (foodList.length) {
     series.push({
       type: "scatter", coordinateSystem: "geo",
-      data: foodList.map((f) => ({ name: f.name, value: [f.lng, f.lat, f.id], cityName: f.city_name, isStreet: true })),
-      symbol: "pin", symbolSize: 22,
-      itemStyle: { color: "#ea580c", borderColor: "#fff", borderWidth: 1 },
-      label: { show: true, position: "top", fontSize: 9, color: "#9a3412", fontWeight: "bold", formatter: (p) => p.name },
-      labelLayout: { hideOverlap: true },
-      emphasis: { itemStyle: { color: "#dc2626" } },
+      data: foodList.map(s => pinData(s, true)),
+      ...pinStyle,
       zlevel: 3,
     });
   }
   chart.setOption({
-    tooltip: {
-      trigger: "item",
-      formatter: (p) =>
-        p.seriesType === "scatter"
-          ? p.data.isStreet
-            ? `<b>🏮 ${p.name}</b><br/>${esc(p.data.cityName || "")} · 美食街<br/><span style="font-size:11px">点击查看口碑</span>`
-            : `<b>${p.name}</b><br/>${esc(p.data.category || "")} · ${esc(p.data.cityName || "")}<br/><span style="font-size:11px">已加入清单 · 点击查看口碑卡</span>`
-          : `${p.name}`,
-    },
-    geo: { map: "province", ...baseGeoOption() },
+    tooltip: mapTooltip(p => p.seriesType === 'scatter'
+      ? `<b>${esc(p.name)}</b><br/>${esc(p.data.cityName || '')} · ${p.data.isStreet ? '美食街' : esc(p.data.category || '景点')}<br/><span style="color:#71877d;font-size:11px">已在清单 · 点击查看评价</span>`
+      : esc(p.name)),
+    geo: { map: "province", ...baseGeoOption(), ...view },
+    animation: false,
     series,
   }, true);
   $("#map-hint").textContent = cartSpots.length
-    ? `${currentProvince} · 清单亮点 ${cartSpots.length} 处（🏞 ${scenic.length} · 🏮 ${streets.length}）`
+    ? `${currentProvince} · 显示 ${spotList.length + foodList.length} / ${cartSpots.length} 处 · 编号对应清单`
     : `${currentProvince} · 暂无清单亮点 · 在城市列表加入想去的地点后显示`;
 }
 
@@ -294,7 +334,9 @@ function drawAlternativesMap() {
   currentRoutePlan = null;
   $("#map-back").style.display = "block";
   $("#map-filters").style.display = "none";
+  $("#map-layers").style.display = "none";
   chart.setOption({
+    animation: false,
     tooltip: {
       trigger: "item",
       formatter: (p) =>
@@ -309,14 +351,15 @@ function drawAlternativesMap() {
         type: "scatter",
         coordinateSystem: "geo",
         data: pts.map((p) => ({ name: p.name, value: [p.lng, p.lat, p.role === "main" ? "main" : "alt"], role: p.role })),
-        symbolSize: (value, params) => (params.data.role === "main" ? 14 : 10),
+        symbol: 'circle', animation: false,
+        symbolSize: (value, params) => (params.data.role === "main" ? 14 : 12),
         itemStyle: {
           color: (p) => (p.data.role === "main" ? "#2563eb" : "#ea580c"),
-          borderColor: "#fff", borderWidth: 1,
+          opacity: 1, borderColor: "#fff", borderWidth: 3,
         },
-        label: { show: true, position: "right", fontSize: 10, color: "#0a5c4c", formatter: (p) => p.name },
+        label: mapPointLabel(),
         labelLayout: { hideOverlap: true },
-        emphasis: { itemStyle: { color: "#dc2626" } },
+        emphasis: { scale: false, itemStyle: { color: "#dc2626" } },
         zlevel: 2,
       },
     ],
@@ -379,8 +422,10 @@ async function renderLoopMap(loopName) {
   currentLoopName = loopName;
   $("#map-back").style.display = "block";
   $("#map-filters").style.display = "none";
+  $("#map-layers").style.display = "none";
   const fit = fitGeoFrom(pts);
   chart.setOption({
+    animation: false,
     tooltip: {
       trigger: "item",
       formatter: (p) =>
@@ -394,12 +439,12 @@ async function renderLoopMap(loopName) {
       {
         type: "scatter",
         coordinateSystem: "geo",
-        data: pts.map((s) => ({ name: s.name, value: [s.lng, s.lat, s.id], category: s.category })),
-        symbolSize: 10,
-        itemStyle: { color: (p) => SPOT_CAT_COLOR[p.data.category] || "#f59e0b", borderColor: "#fff", borderWidth: 1 },
-        label: { show: pts.length <= 20, position: "right", fontSize: 9, color: "#0a5c4c", formatter: (p) => p.name },
+        data: pts.map((s, i) => ({ name: s.name, value: [s.lng, s.lat, s.id], category: s.category, markerNo: i+1 })),
+        symbol: 'circle', symbolSize: 12, animation: false,
+        itemStyle: { opacity: 1, borderColor:'#fff', borderWidth:2, color:p => SPOT_CAT_COLOR[p.data.category] || '#587ca1' },
+        label: mapPointLabel(),
         labelLayout: { hideOverlap: true },   // 标签重叠自动隐藏
-        emphasis: { itemStyle: { color: "#dc2626" } },
+        emphasis: { scale: false, itemStyle: { color: "#dc2626" } },
         zlevel: 2,
       },
     ],
@@ -430,13 +475,15 @@ function drawRouteOnMap(plan) {
   currentRoutePlan = plan;
   $("#map-back").style.display = "block";
   $("#map-filters").style.display = "none";
+  $("#map-layers").style.display = "none";
   chart.setOption({
+    animation: false,
     tooltip: {
       trigger: "item",
       formatter: (p) =>
         p.seriesType === "lines"
-          ? `${p.data.fromName} → ${p.data.toName}`
-          : `${p.name}<br/><span style="font-size:11px">点击查看口碑卡</span>`,
+          ? esc(plan.name)
+          : p.seriesType === 'scatter' ? `${esc(p.name)}<br/><span style="font-size:11px">路线第 ${p.dataIndex + 1} 站</span>` : esc(p.name),
     },
     geo: { map: "china", ...baseGeoOption(), center: fit.center, zoom: fit.zoom },
     series: [
@@ -445,8 +492,8 @@ function drawRouteOnMap(plan) {
         type: "lines",
         coordinateSystem: "geo",
         polyline: true,
-        data: [{ coords, lineStyle: { width: 3, color: "#0e7c66" } }],
-        effect: { show: true, period: 6, trailLength: 0.35, symbol: "arrow", symbolSize: 8, color: "#f59e0b" },
+        data: [{ coords, lineStyle: { width: 1.5, type:'dashed', color: "#438877" } }],
+        animation: false,
         zlevel: 3,
       },
       {
@@ -455,16 +502,18 @@ function drawRouteOnMap(plan) {
         data: pts.map((p, i) => ({
           name: p.name,
           value: [p.lng, p.lat, i === 0 ? "start" : i === pts.length - 1 ? "end" : "mid"],
+          markerNo: i+1,
         })),
-        symbolSize: 12,
+        symbol: 'circle', symbolSize: 12, animation: false,
         itemStyle: {
+          opacity: 1,
           color: (p) =>
             p.data.value[2] === "start" ? "#16a34a" : p.data.value[2] === "end" ? "#dc2626" : "#f59e0b",
           borderColor: "#fff", borderWidth: 1,
         },
-        label: { show: true, position: "top", fontSize: 9, color: "#0a5c4c", formatter: (p) => p.name },
+        label: mapPointLabel(),
         labelLayout: { hideOverlap: true },   // 标签重叠自动隐藏
-        emphasis: { itemStyle: { color: "#dc2626" } },
+        emphasis: { scale: false, itemStyle: { color: "#dc2626" } },
         zlevel: 4,
       },
     ],
@@ -1101,6 +1150,7 @@ function cityPlanWorkspaceHtml() {
         <input id="plan-start" list="plan-city-list" placeholder="如:兰州" style="width:120px;padding:4px 8px;border:1px solid var(--border);border-radius:8px">
         <datalist id="plan-city-list">${state.cities.map((c) => `<option value="${esc(c.name)}">`).join("")}</datalist>
       </label>
+      <button class="btn sm" onclick="TravelRail.open()">铁路交通 →</button>
       <label style="font-size:12px">📅 总天数
         <select id="plan-days" onchange="syncPlanDays('ws')" style="padding:4px 8px;border:1px solid var(--border);border-radius:8px">
           ${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((d) => `<option value="${d}" ${d === state.planDays ? "selected" : ""}>${d} 天</option>`).join("")}
@@ -1250,7 +1300,7 @@ function renderPlans(cityName, plans) {
       <div class="plan-card">
         <h4>${esc(p.name)}</h4>
         <div class="summary">${p.source ? `来源: ${esc(p.source)} · ` : ""}${esc(String(p.summary || '').split(/\s*\|\s*每日[:：]/)[0])}</div>
-        <div class="plan-actions"><button class="btn sm accent" onclick="openPlanWorkbench(${i})">进入行程工作坊 →</button></div>
+        <div class="plan-actions"><button class="btn sm accent" onclick="openPlanWorkbench(${i})">进入行程工作坊 →</button><button class="btn sm" onclick="openPlanWorkbench(${i});TravelRail.open({scope:'workbench'})">选择铁路</button></div>
         <details class="plan-preview"><summary>查看每日安排与原建议</summary>
         ${p.route && p.route.length ? `
           <div class="route-strip">${p.route.map((l) => {
@@ -1335,7 +1385,7 @@ function renderTrip() {
   const pane = $("#tab-trip");
   const plan = finalPlan();
   if (!plan) {
-    pane.innerHTML = `<div class="empty-hint">还没有最终行程。先在“方案”里微调一套方案，再点“设为最终行程”。</div>`;
+    pane.innerHTML = `<div class="empty-hint">还没有最终行程。先在“方案”里微调一套方案，再点“设为最终行程”。</div>${window.TravelRail?.section() || ''}`;
     return;
   }
   normalizedWorkbenchDays(plan);
@@ -1343,6 +1393,7 @@ function renderTrip() {
     <div class="final-trip-head"><div><div class="eyebrow">最终版本</div><h3>${esc(plan.name || "我的行程")}</h3><p>${esc(plan.summary || "已选定的专属行程")}</p></div>
       <div class="workbench-head-actions"><button class="btn sm" onclick="openFinalPlanWorkbench()">继续编辑</button><button class="btn sm primary" onclick="exportFinalPlanPdf()">导出 PDF</button>${plan.route?.length ? '<button class="btn sm primary" onclick="drawRouteOnMap(finalPlan())">🗺 查看路线</button>' : ""}</div></div>
     <div class="final-trip-note">这是你确认的唯一行程，之后仍可继续编辑。<button class="workshop-text-btn" onclick="printFinalPlan()">打印另存</button></div>
+    ${window.TravelRail?.section(plan, 'final') || ''}
     ${plan.workshop_changed ? '<div class="workshop-review-note">安排已手动调整，原路线、住宿与交通推算不再作为当前结果，请出发前核实。</div>' : ''}
     ${(plan.daily || []).map((day) => `<section class="final-day"><div class="workbench-day-title">第 ${day.day} 天</div>${day.note ? `<div class="day-note">${esc(day.note)}</div>` : ""}
       ${(day.items || []).length ? day.items.map((item) => `<div class="item">${item.time ? `<span class="time-chip">🕐${esc(item.time)}</span> ` : ""}${esc(item.spot)}${item.why ? ` <span class="why">— ${esc(item.why)}</span>` : ""}</div>`).join("") : '<div class="workbench-empty">当天未安排景点</div>'}
@@ -1372,7 +1423,7 @@ function renderSavedPlanLibrary() {
 
 
 // ---------- 事件绑定 ----------
-document.querySelectorAll(".tabs button").forEach((b) => {
+document.querySelectorAll(".tabs button[data-tab]").forEach((b) => {
   b.addEventListener("click", () => {
     switchTab(b.dataset.tab);
     if (b.dataset.tab === "cart") renderCart();

@@ -1,0 +1,18 @@
+.travel-embedded .header { min-height:48px;height:48px;padding:0 18px;flex-wrap:nowrap;gap:8px; }
+.travel-embedded .brand,.travel-embedded .sidebar-footer { display:none; }
+.travel-embedded .header .main-nav { margin:0;order:0;width:auto;flex:1;justify-content:flex-start; }
+.travel-embedded .header-right { margin-left:auto; }
+.travel-embedded .nav-tab { padding:8px 13px; }
+.travel-embedded .snapshot { font-size:10px; }
+@media(max-width:650px){.travel-embedded .header {padding:0 8px}.travel-embedded .main-nav{margin-right:0}.travel-embedded .nav-tab{padding:8px}.travel-embedded .header-right{display:flex}.travel-embedded .snapshot{display:none}}
+@media(max-width:700px){
+  .travel-embedded .workspace .sidebar{order:1;display:flex;flex-direction:column;max-height:none;overflow:visible}
+  .travel-embedded .workspace .visual-workspace{order:2}
+  .travel-embedded .sidebar .recommendations{order:1}
+  .travel-embedded .sidebar .plan-saver{order:2}
+  .travel-embedded .sidebar .advanced-search{order:3}
+  .travel-embedded .recommendations{padding:18px}
+  .travel-embedded .plan-saver{padding:16px 18px;border-top:1px solid var(--line)}
+  .travel-embedded .header .nav-tab{white-space:nowrap}
+  .travel-embedded.map-focus .workspace .sidebar,.travel-embedded.comparison-preview .workspace .sidebar{display:none}
+}

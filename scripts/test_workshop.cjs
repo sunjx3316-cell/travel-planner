@@ -17,7 +17,7 @@ const context = vm.createContext({console, Date, JSON, Number, String, Set,
   savedWorkbenchPlans: () => JSON.parse(storage.get('library') || '[]'),
   finalPlan: () => JSON.parse(storage.get('final') || 'null'),
   window: {confirm: () => true, print: () => {context.printed=true;}, addEventListener: () => {}},
-  document: {title: 'Travel', body: {appendChild: el => {context.printSheet=el;}}, createElement: () => ({remove(){}})}
+  document: {title: 'Travel', addEventListener: () => {}, body: {appendChild: el => {context.printSheet=el;}}, createElement: () => ({remove(){}})}
 });
 vm.runInContext(fs.readFileSync('frontend/js/workshop.js','utf8'), context);
 const plan = {name:'我的方案', summary:'原始建议', route:[{from:'北京',to:'天津'}], tips:['原交通提醒'],
@@ -69,4 +69,21 @@ context.printFinalPlan();
 assert.equal(context.printed,true);
 assert.match(context.printSheet.innerHTML,/手动地点/);
 assert.ok(storage.has('travel-planner-workshop-draft-v1'));
+context.beginWorkbench({name:'拖拽测试', daily:[{items:[{spot:'A', time:'09:00-11:00'}, {spot:'B',time:'下午'}]}, {items:[{spot:'C',time:'下午'}]}, {items:[]}]}, 0);
+context.moveWorkshopCard(0,0,2,'afternoon');
+assert.equal(context.state.workbench.plan.daily[2].items[0].spot,'A');
+assert.equal(context.state.workbench.plan.daily[2].items[0].time,'下午');
+context.undoWorkbenchChange();
+assert.equal(context.state.workbench.plan.daily[0].items[0].time,'09:00-11:00');
+context.moveWorkshopCard(0,1,1,'afternoon',0);
+assert.equal(context.state.workbench.plan.daily[1].items[0].spot,'B');
+context.moveWorkshopCard(1,0,1,'afternoon');
+assert.equal(context.state.workbench.plan.daily[1].items[1].spot,'B');
+context.moveWorkshopCard(0,0,2,'morning');
+assert.equal(context.state.workbench.plan.daily[2].items[0].time,'09:00-11:00');
+assert.equal(context.workshopPeriod({time:'全天'}),'other');
+assert.equal(context.workshopPeriod({time:'19:00-20:00'}),'other');
+assert.match(elements.get('#tab-plans').innerHTML,/workshop-board/);
+assert.match(elements.get('#tab-plans').innerHTML,/data-period="morning"/);
+assert.match(elements.get('#tab-plans').innerHTML,/data-period="afternoon"/);
 console.log('Workshop checks passed: editing, transfer, undo, restoration, replacement, duplicates, derived-data invalidation, final save, print export and escaping.');

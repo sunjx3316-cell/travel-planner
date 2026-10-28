@@ -191,6 +191,103 @@ function workshopTimeRange(text) {
   if (h1 > 23 || h2 > 23 || m1 > 59 || m2 > 59) return null;
   return [h1 * 60 + m1, h2 * 60 + m2];
 }
+function workshopPeriod(item) {
+  const text = String(item.time || '').trim();
+  if (/全天|待安排|晚上|夜|傍晚/.test(text)) return 'other';
+  if (/上午|早|中午/.test(text)) return 'morning';
+  if (/下午/.test(text)) return 'afternoon';
+  const range = workshopTimeRange(text);
+  return range ? (range[0] < 720 ? 'morning' : range[0] < 1080 ? 'afternoon' : 'other') : 'other';
+}
+function selectWorkshopCard(dayIndex, itemIndex) {
+  if (state.workbench?.suppressClick) return;
+  state.workbench.dayIndex = dayIndex;
+  selectWorkbenchItem(itemIndex);
+  document.querySelector('.workshop-inspector')?.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+}
+function moveWorkshopCard(fromDay, fromIndex, toDay, period, beforeIndex = null) {
+  const wb = state.workbench;
+  const item = wb?.plan.daily[fromDay]?.items[fromIndex];
+  if (!item || !wb.plan.daily[toDay] || !['morning', 'afternoon', 'other'].includes(period)) return;
+  if (fromDay === toDay && beforeIndex === fromIndex) return;
+  const changePeriod = workshopPeriod(item) !== period;
+  mutateWorkshop(wb => {
+    const source = wb.plan.daily[fromDay].items;
+    const target = wb.plan.daily[toDay].items;
+    source.splice(fromIndex, 1);
+    if (changePeriod) item.time = {morning: '上午', afternoon: '下午', other: '待安排'}[period];
+    let insertAt;
+    if (beforeIndex != null && Number.isInteger(beforeIndex)) {
+      insertAt = beforeIndex - (fromDay === toDay && fromIndex < beforeIndex ? 1 : 0);
+    } else {
+      const last = target.reduce((found, entry, i) => workshopPeriod(entry) === period ? i : found, -1);
+      insertAt = last >= 0 ? last + 1 : period === 'morning' ? 0 : target.length;
+    }
+    insertAt = Math.max(0, Math.min(insertAt, target.length));
+    target.splice(insertAt, 0, item);
+    wb.dayIndex = toDay; wb.itemIndex = null;
+  }, [fromDay, toDay]);
+  flash(changePeriod ? '已移动，时间改为' + item.time + '；可点卡片填写具体时间' : '安排已移动，可撤销');
+}
+let workshopDrag = null;
+function startWorkshopDrag(event, dayIndex, itemIndex) {
+  if (event.button !== 0 || !event.isPrimary) return;
+  workshopDrag = {dayIndex, itemIndex, x: event.clientX, y: event.clientY, pointerId: event.pointerId,
+    card: event.currentTarget, active: false};
+}
+function clearWorkshopDrag() {
+  if (!workshopDrag) return;
+  workshopDrag.ghost?.remove();
+  workshopDrag.card.classList.remove('dragging');
+  document.querySelectorAll('.workshop-drop.hovered').forEach(el => el.classList.remove('hovered'));
+  workshopDrag = null;
+}
+document.addEventListener('pointermove', event => {
+  const drag = workshopDrag;
+  if (!drag || event.pointerId !== drag.pointerId) return;
+  if (!drag.active && Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 7) return;
+  if (!drag.active) {
+    drag.active = true;
+    state.workbench.suppressClick = true;
+    drag.card.classList.add('dragging');
+    drag.ghost = drag.card.cloneNode(true);
+    drag.ghost.className = 'workshop-card workshop-drag-ghost';
+    drag.ghost.style.width = drag.card.getBoundingClientRect().width + 'px';
+    document.body.appendChild(drag.ghost);
+  }
+  event.preventDefault();
+  drag.ghost.style.left = (event.clientX + 12) + 'px';
+  drag.ghost.style.top = (event.clientY + 12) + 'px';
+  const zone = document.elementFromPoint(event.clientX, event.clientY)?.closest('.workshop-drop');
+  document.querySelectorAll('.workshop-drop.hovered').forEach(el => el.classList.remove('hovered'));
+  zone?.classList.add('hovered');
+  const pane = document.getElementById('tab-plans');
+  const rect = pane?.getBoundingClientRect();
+  if (rect && event.clientY > rect.bottom - 55) pane.scrollTop += 14;
+  if (rect && event.clientY < rect.top + 55) pane.scrollTop -= 14;
+}, {passive: false});
+document.addEventListener('pointerup', event => {
+  const drag = workshopDrag;
+  if (!drag || event.pointerId !== drag.pointerId) return;
+  const zone = document.elementFromPoint(event.clientX, event.clientY)?.closest('.workshop-drop');
+  const before = document.elementFromPoint(event.clientX, event.clientY)?.closest('.workshop-card');
+  const active = drag.active;
+  clearWorkshopDrag();
+  if (active && zone) moveWorkshopCard(drag.dayIndex, drag.itemIndex, Number(zone.dataset.day), zone.dataset.period,
+    before ? Number(before.dataset.item) : null);
+  if (active) setTimeout(() => {if (state.workbench) state.workbench.suppressClick = false;}, 0);
+});
+document.addEventListener('pointercancel', () => {
+  clearWorkshopDrag();
+  if (state.workbench) state.workbench.suppressClick = false;
+});
+function workshopBoardHtml(plan, selectedDay) {
+  const periods = [['morning', '上午'], ['afternoon', '下午']];
+  return `<div class="workshop-board">${plan.daily.map((day, di) => {
+    const slots = day.items.some(item => workshopPeriod(item) === 'other') ? [...periods, ['other', '全天 / 晚间 / 待安排']] : periods;
+    return `<section class="workshop-day ${di === selectedDay ? 'selected' : ''}" aria-label="第 ${di + 1} 天"><div class="workshop-column-head"><button class="workshop-text-btn" onclick="selectWorkbenchDay(${di})">第 ${di + 1} 天</button><small>${day.items.length} 个安排</small><button class="workshop-text-btn" aria-label="第 ${di + 1} 天添加安排" onclick="selectWorkbenchDay(${di});addCustomWorkbenchItem()">＋</button></div>${slots.map(([period, label]) => `<div class="workshop-drop" data-day="${di}" data-period="${period}" aria-label="第 ${di + 1} 天${label}"><div class="workshop-slot-title">${label}</div>${day.items.map((item, i) => workshopPeriod(item) === period ? `<button type="button" class="workshop-card ${di === selectedDay && i === state.workbench.itemIndex ? 'selected' : ''}" data-item="${i}" onpointerdown="startWorkshopDrag(event,${di},${i})" onclick="selectWorkshopCard(${di},${i})" aria-label="编辑 ${esc(item.spot || '未命名安排')}"><span class="workshop-grip" aria-hidden="true">⠿</span><span><b>${esc(item.spot || '未命名安排')}</b><small>${esc(item.time || '待安排')}${item.city_name ? ' · ' + esc(item.city_name) : ''}</small></span></button>` : '').join('')}<div class="workshop-drop-hint">拖到这里</div></div>`).join('')}</section>`;
+  }).join('')}</div>`;
+}
 function workshopDayIssues(day) {
   const issues = [], names = new Set(), ranges = [];
   let unspecified = 0;
@@ -225,9 +322,11 @@ function renderPlanWorkbench() {
   $('#tab-plans').innerHTML = `<div class="workshop">
     <div class="workshop-header"><button class="workshop-back" onclick="closePlanWorkbench()" aria-label="返回方案">←</button><div><div class="eyebrow">行程工作坊</div><h3>${esc(plan.name || '我的行程')}</h3><small id="workshop-save-status" role="status">${wb.storageError ? '本机存储失败，请勿关闭页面' : '草稿已自动保存在本机'}</small></div><button class="btn sm accent" onclick="setFinalPlan()">确认行程</button></div>
     <div class="workshop-overview"><span>${plan.daily.length} 天 · ${plan.daily.reduce((n, d) => n + d.items.length, 0)} 个安排${allIssues ? ' · ' + allIssues + ' 项待核对' : ''}</span><button class="btn sm" onclick="undoWorkbenchChange()" ${wb.undo.length ? '' : 'disabled'}>撤销</button></div>
-    <div class="workshop-day-tabs" role="tablist" aria-label="选择行程日期">${plan.daily.map((d, i) => `<button role="tab" aria-selected="${i === di}" class="${i === di ? 'selected' : ''}" onclick="selectWorkbenchDay(${i})">第 ${i + 1} 天 <small>${d.items.length} 项</small></button>`).join('')}</div>
-    <div class="workshop-day-head"><h4>当天安排</h4><button class="workshop-text-btn" onclick="addCustomWorkbenchItem()">＋ 自由安排</button></div>
-    <div class="workshop-timeline">${day.items.map((entry, i) => `<button class="workshop-stop ${wb.itemIndex === i ? 'selected' : ''}" onclick="selectWorkbenchItem(${i})" aria-label="编辑 ${esc(entry.spot || '未命名安排')}"><span class="workshop-time">${esc(entry.time || '待安排')}</span><span><b>${esc(entry.spot || '未命名安排')}</b>${entry.why ? `<small>${esc(entry.why)}</small>` : ''}</span><span class="workshop-edit-mark">编辑</span></button>`).join('') || '<div class="workshop-empty-day">留白也是行程的一部分。添加一个地点，或自由安排。</div>'}</div>
+    <p class="workshop-subtle workshop-board-help">拖动卡片，调整日期或上午 / 下午；点击卡片编辑。改时段时，原具体时间会改为新时段。</p>
+    ${workshopBoardHtml(plan, di)}
+    ${window.TravelRail?.section(plan, 'workbench') || ''}
+    <div class="workshop-day-head"><h4>第 ${di + 1} 天 · ${item ? '编辑安排' : '添加与设置'}</h4><button class="workshop-text-btn" onclick="addCustomWorkbenchItem()">＋ 自由安排</button></div>
+    ${item ? `<label class="workshop-period-control">时段<select aria-label="安排时段" onchange="moveWorkshopCard(${di},${wb.itemIndex},${di},this.value)">${[['morning','上午'],['afternoon','下午'],['other','全天 / 晚间 / 待安排']].map(([value,label]) => `<option value="${value}" ${workshopPeriod(item) === value ? 'selected' : ''}>${label}</option>`).join('')}</select></label>` : ''}
     ${item ? `<section class="workshop-inspector" aria-label="编辑当前安排"><div class="workshop-editor-title">编辑安排<button class="workshop-text-btn" onclick="selectWorkbenchItem(null)">完成</button></div><label>地点<input aria-label="安排地点" value="${esc(item.spot || '')}" oninput="updateWorkbenchItem(${di},${wb.itemIndex},'spot',this.value,false)"></label><label>时间<input aria-label="安排时间" placeholder="如 09:00-11:00，或上午" value="${esc(item.time || '')}" oninput="updateWorkbenchItem(${di},${wb.itemIndex},'time',this.value,false)"></label><label>备注<input aria-label="安排备注" value="${esc(item.why || '')}" placeholder="预约、同行人偏好等" oninput="updateWorkbenchItem(${di},${wb.itemIndex},'why',this.value,false)"></label><div class="workshop-editor-tools"><button class="btn sm" onclick="moveWorkbenchItem(${di},${wb.itemIndex},-1)" ${wb.itemIndex === 0 ? 'disabled' : ''}>上移</button><button class="btn sm" onclick="moveWorkbenchItem(${di},${wb.itemIndex},1)" ${wb.itemIndex === day.items.length - 1 ? 'disabled' : ''}>下移</button><label>移至<select aria-label="移至其他日期" onchange="transferWorkbenchItem(${di},${wb.itemIndex},this.value)">${plan.daily.map((d, i) => `<option value="${i}" ${i === di ? 'selected' : ''}>第 ${i + 1} 天</option>`).join('')}</select></label><button class="workshop-text-btn danger" onclick="removeWorkbenchItem(${di},${wb.itemIndex})">移除</button></div>${state.cart.length ? `<details><summary>用清单中的地点替换</summary><select aria-label="替换安排地点" onchange="replaceWorkbenchItem(${di},${wb.itemIndex},this.value)">${options}</select></details>` : ''}</section>` : '<p class="workshop-subtle">点击一项安排，即可调整时间、顺序或日期。</p>'}
     ${state.cart.length ? `<div class="workshop-add"><select id="workbench-cart-item" aria-label="从清单选择地点">${options}</select><button class="btn sm" onclick="addWorkbenchCartItem(${di})">加入当天</button></div>` : ''}
     <details class="workshop-checks" ${check.issues.length ? 'open' : ''}><summary>${check.issues.length ? check.issues.length + ' 项安排待核对' : '安排检查'}${check.unspecified ? ' · ' + check.unspecified + ' 项未填写具体时间' : ''}</summary>${check.issues.map(issue => `<p>${esc(issue)}</p>`).join('')}<small>本地规则检查，不重新调用 AI。只检查明确时间段；开放时间、交通耗时和预约需另行确认。</small></details>
@@ -260,7 +359,29 @@ function savePlanWorkbench() {
 }
 
 function tripPrintHtml(plan) {
-  return `<header><div>旅行智规 · 最终行程</div><h1>${esc(plan.name || '我的行程')}</h1><p>${esc(plan.summary || '')}</p><small>${plan.daily.length} 天 · 导出日期 ${new Date().toLocaleDateString('zh-CN', {timeZone: 'Asia/Shanghai'})}</small></header>${plan.workshop_changed ? '<p class="trip-print-note">本行程已手动调整，交通、住宿及预约请出发前核实。</p>' : ''}${plan.daily.map((day, index) => `<section class="trip-print-day"><h2>第 ${index + 1} 天</h2>${day.note ? `<p>${esc(day.note)}</p>` : ''}${day.items.length ? day.items.map(item => `<div class="trip-print-item"><span>${esc(item.time || '待安排')}</span><div><b>${esc(item.spot || '未命名安排')}</b>${item.why ? `<p>${esc(item.why)}</p>` : ''}${item.time_reason ? `<small>${esc(item.time_reason)}</small>` : ''}</div></div>`).join('') : '<p>当天自由安排</p>'}${day.stay ? `<p>住宿参考：${esc(day.stay.area_label || day.stay.town || '')} ${esc(day.stay.price || '')}</p>` : ''}${day.next_transport ? `<p>交通参考：前往 ${esc(day.next_transport.to || '')} · ${esc(day.next_transport.rail || day.next_transport.recommend || '')}</p>` : ''}${day.foods?.dishes?.length ? `<p>餐饮参考：${day.foods.dishes.map(dish => esc(dish.name)).join('、')}</p>` : ''}</section>`).join('')}${plan.tips?.length ? `<section class="trip-print-tips"><h2>出行参考提醒</h2>${plan.tips.map(tip => `<p>${esc(tip)}</p>`).join('')}</section>` : ''}<footer>以你确认的最终安排为准。历史评价、开放时间、预约和交通信息需出行前核实。</footer>`;
+  const groups = [];
+  const periodOf = item => /全天/.test(item.time || '') ? 'all_day' : workshopPeriod(item) !== 'other' ? workshopPeriod(item)
+    : /晚上|夜|傍晚|^(18|19|2[0-3])[:：]/.test(item.time || '') ? 'evening' : 'flexible';
+  const slots = [['all_day','ALL DAY / 全天'],['morning','AM / 上午'],['afternoon','PM / 下午'],['evening','NIGHT / 晚间'],['flexible','FLEX / 时间待定']];
+  for (let start = 0; start < plan.daily.length; start += 3) {
+    const days = plan.daily.slice(start, start + 3);
+    const cards = days.map(day => {
+      const items = day.items || [];
+      const sections = slots.map(([period,label]) => {
+        const entries = items.filter(item => periodOf(item) === period);
+        if (!entries.length && (!['morning','afternoon'].includes(period) || items.some(item => periodOf(item) === 'all_day'))) return '';
+        return `<h3 class="trip-period">${label}</h3>${entries.map(item => `<div class="trip-calendar-card"><small>${esc(item.time || '时间待定')}</small><b>${esc(item.spot || '未命名安排')}</b>${item.why ? `<p>${esc(item.why)}</p>` : ''}${item.time_reason && !plan.workshop_changed ? `<small>${esc(item.time_reason)}</small>` : ''}</div>`).join('') || '<small>留白时间 · 自由安排</small>'}`;
+      }).join('');
+      const notes = [day.note ? `<p>${esc(day.note)}</p>` : '',
+        !plan.workshop_changed && day.stay ? `<p>住 / ${esc(day.stay.area_label || day.stay.town || '')} ${esc(day.stay.price || '')}</p>` : '',
+        !plan.workshop_changed && day.next_transport ? `<p>行 / ${esc(day.next_transport.to || '')} ${esc(day.next_transport.rail || day.next_transport.recommend || '')}</p>` : '',
+        !plan.workshop_changed && day.foods?.dishes?.length ? `<p>食 / ${day.foods.dishes.map(dish => esc(dish.name)).join('、')}</p>` : ''].join('');
+      return `<td>${sections}${notes ? `<div class="trip-memo"><h3 class="trip-period">MEMO / 当天备忘</h3>${notes}</div>` : ''}</td>`;
+    });
+    groups.push(`<table class="trip-calendar"><thead><tr>${days.map((day,i) => `<th><span class="trip-day-number">${String(start+i+1).padStart(2,'0')}</span> / 第 ${start+i+1} 天<small>${(day.items || []).length} 个安排</small></th>`).join('')}</tr></thead><tbody><tr>${cards.join('')}</tr></tbody></table>`);
+  }
+  groups.push(window.TravelRail?.printSection(plan) || '');
+  return `<header><div>旅行智规 · 日历式行程表</div><h1>${esc(plan.name || '我的行程')}</h1><p>${esc(plan.summary || '')}</p><small>${plan.daily.length} 天 · 导出日期 ${new Date().toLocaleDateString('zh-CN', {timeZone: 'Asia/Shanghai'})}</small></header>${plan.workshop_changed ? '<p class="trip-print-note">本行程已手动调整，交通、住宿及预约请出发前核实。</p>' : ''}${groups.join('')}${plan.tips?.length && !plan.workshop_changed ? `<section><h2>出行参考提醒</h2>${plan.tips.map(tip => `<p>${esc(tip)}</p>`).join('')}</section>` : ''}<footer>以最终确认的安排为准，开放时间、预约和交通信息需出发前核实。</footer>`;
 }
 async function exportFinalPlanPdf() {
   const plan = finalPlan();

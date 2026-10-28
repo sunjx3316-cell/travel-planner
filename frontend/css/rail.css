@@ -1,0 +1,29 @@
+.rail-workbench{position:fixed;inset:0;width:100vw;max-width:none;height:100dvh;max-height:none;margin:0;padding:0;border:0;background:#f7f8f3;color:#173d35;overflow:hidden}
+.rail-workbench[open]{display:flex;flex-direction:column}
+.rail-workbench::backdrop{background:#173d3580}
+.rail-workbench-bar{display:flex;align-items:center;gap:16px;min-height:58px;padding:8px 20px;border-bottom:1px solid #dce5dd;background:white;flex-shrink:0}
+.rail-workbench-bar strong{font-size:15px;white-space:nowrap}
+.rail-workbench-bar [data-rail-status]{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:#63786e}
+.rail-workbench-bar button{white-space:nowrap}
+.rail-workbench iframe{width:100%;border:0;flex:1;min-height:0}
+.trip-rail{margin:14px 0 20px;padding:16px;border:1px solid #dce6df;border-radius:14px;background:#fbfcf9}
+.trip-rail-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:15px}
+.trip-rail-empty,.trip-rail-local{font-size:12px;line-height:1.7;color:#718078;margin:10px 0 0}
+.trip-rail-local{font-size:11px}
+.trip-rail-journey{border-top:1px solid #e2e9e2;margin-top:12px;padding-top:12px}
+.trip-rail-journey summary{display:flex;align-items:center;gap:10px;cursor:pointer;list-style:none}
+.trip-rail-journey summary::-webkit-details-marker{display:none}
+.trip-rail-journey summary>span:first-child{flex:1}
+.trip-rail-journey summary b{font-size:13px}
+.trip-rail-journey summary small{display:block;font-size:11px;color:#718078;margin-top:5px}
+.trip-rail-price{font-size:11px;color:#4b6757;white-space:nowrap}
+.trip-rail-journey summary:after{content:'⌄';font-size:15px}
+.trip-rail-journey[open] summary:after{content:'⌃'}
+.trip-rail-journey ol{margin:12px 0;padding-left:22px}
+.trip-rail-journey li{padding:5px 0;font-size:12px;line-height:1.8}
+.trip-rail-journey li b{display:block;color:#177a64}
+.trip-rail-disclaimer{font-size:11px;line-height:1.8;color:#718078;margin:10px 0}
+.trip-rail-saved{font-size:12px;margin-top:12px}.trip-rail-saved summary{cursor:pointer}.trip-rail-saved .btn{margin:8px 6px 0 0}
+.tabs{overflow-x:auto}.tabs button{white-space:nowrap;flex-shrink:0}
+.trip-print-rail{break-inside:avoid;border-top:1px solid #dce6df;margin-top:24px;padding-top:14px}
+@media(max-width:650px){.rail-workbench-bar{gap:8px;padding:8px 10px;min-height:52px}.rail-workbench-bar strong{display:none}.rail-workbench-bar [data-rail-status]{font-size:10px}.rail-workbench-bar .btn{font-size:11px;padding:8px}}

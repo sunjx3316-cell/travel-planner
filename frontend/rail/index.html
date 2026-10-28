@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#153f38"><meta name="description" content="比较多条铁路行程，在城市节点之间自由规划，用地图与动态线路图探索中国铁路。"><title>山海铁道 · 路线工作台</title><link rel="icon" href="./favicon.svg"><link rel="stylesheet" href="./v3.css"><link rel="stylesheet" href="./workspace.css"><link rel="stylesheet" href="./decision.css"></head><body class="conditions-collapsed">
+<header class="header"><a class="brand" href="./"><img src="./favicon.svg" alt="">山海铁道 <small>RAIL ATLAS / 路线工作台</small></a><nav class="main-nav" aria-label="工作区"><button id="planner-tab" class="nav-tab active">01 智能推荐</button><button id="explore-tab" class="nav-tab">02 自由编辑</button><button id="compare-tab" disabled class="nav-tab">03 方案对比</button></nav><div class="header-right"><span class="snapshot" id="snapshot-date">正在读取时刻表</span><button id="about-open" class="icon-button" aria-label="数据与算法说明">ⓘ</button></div></header>
+<div class="query-summary"><span id="query-summary-text">正在读取出发条件…</span><button id="toggle-conditions" aria-expanded="false" aria-controls="query-section">修改出发条件 ▾</button></div>
+<section id="query-section" class="query-section" aria-label="出发条件">        <form id="search-form">
+          <div class="station-fields">
+            <div class="station-field"><span class="endpoint origin-dot"></span><label for="origin">出发地</label><input id="origin" aria-label="出发地" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="origin-options" autocomplete="off" value="天津" placeholder="城市或车站" required><div class="suggestions" id="origin-options" role="listbox" hidden></div></div>
+            <div class="field-divider"></div>
+            <div class="station-field"><span class="endpoint dest-dot"></span><label for="destination">目的地</label><input id="destination" aria-label="目的地" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="destination-options" autocomplete="off" value="重庆" placeholder="城市或车站" required><div class="suggestions" id="destination-options" role="listbox" hidden></div></div>
+            <button class="swap-button" type="button" id="swap" aria-label="交换出发地和目的地" title="交换出发地和目的地">⇅</button>
+          </div>
+          <div class="form-row"><label class="input-box">出发日期<input type="date" id="date" required></label><label class="input-box time-box">最早出发<input type="time" id="time" value="06:00" required></label></div>
+          <div class="form-row"><label class="select-box">上限<select id="transfers" aria-label="换乘"><option value="0">直达</option><option value="1">0–1 次换乘</option><option value="2" selected>0–2 次换乘</option><option value="3">0–3 次换乘</option></select></label><label class="select-box">车型<select id="train-type" aria-label="车型"><option value="all">全部列车</option><option value="fast">高铁 / 动车</option><option value="normal">普速列车</option></select></label></div>
+          <label class="seat-select">票价席别<select id="seat-preference" aria-label="票价席别"><option value="standard">二等座 / 硬座</option><option value="second">仅二等座</option><option value="hard">仅硬座</option></select><span>12306 实际报价</span></label>
+          <button type="submit" class="search-button" id="search" disabled><span>正在装载时刻表</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
+        </form>
+</section>
+<main class="workspace" id="editor-workspace"><aside class="sidebar" aria-label="路线方案与编辑工具">
+      <section class="plan-saver" aria-label="保存多条方案"><div class="plan-saver-heading"><strong>我的方案</strong><small id="saved-count">0 / 20 · 保存在当前浏览器</small></div><label>方案名称<input id="plan-name" maxlength="40" value="方案 A" aria-label="当前方案名称"></label><div class="plan-save-actions"><button id="save-plan" disabled>加入对比库</button><button id="save-new-plan" disabled>加入并新建 ＋</button></div><button id="open-comparison" disabled>统一匹配 / 对比（0）</button><small>先收集不同走法，到方案对比中选定最终行程。</small></section>
+<section class="explorer-panel" id="explorer-panel" hidden aria-label="自由编辑">
+        <div class="explorer-top"><span class="eyebrow">BUILD YOUR OWN JOURNEY</span><button id="clear-waypoints">清空节点</button></div>
+        <h3>把城市，连成旅程。</h3><p>点选城市查看班次，点击「加入行程」，再从到达城市接着选下一趟，支持同城跨站。</p>
+        <section id="picked-journey" class="picked-journey" hidden aria-label="已选车次"><div class="picked-heading"><strong>已加入的车次</strong><button id="clear-picked">清空车次</button></div><ol id="picked-legs"></ol><p id="picked-summary" aria-live="polite"></p><div class="picked-actions"><button id="continue-picked">继续选下一段 →</button><button id="complete-picked">保留已选，推荐后续</button></div></section>
+        <div id="builder-start" class="builder-endpoint"></div><div id="waypoint-list" class="waypoint-list"></div>
+        <div id="builder-end" class="builder-endpoint"></div><div class="via-picker"><input id="via" aria-label="添加换乘城市或车站" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="via-options" autocomplete="off" placeholder="搜索换乘城市 / 车站"><button id="add-via" title="添加换乘节点" aria-label="添加换乘节点">添加</button><div class="suggestions" id="via-options" role="listbox" hidden></div></div>
+        <details class="hub-disclosure"><summary>可探索的关键节点 <span>展开查看</span></summary><p class="hub-hint">按本次搜索连接数推荐，点击添加。</p><div id="hub-list" class="hub-list"></div></details>
+        <div id="segment-checks" class="segment-checks"></div><button id="search-via" class="node-search">比较经过这些节点的方案 →</button>
+        <small>按添加顺序换乘，支持同城跨站，最多 3 个节点；清空后恢复自由找路。</small>
+      </section>
+<section class="city-workbench" id="city-workbench" hidden><div class="section-label">城市探索 <span id="city-count"></span></div><input id="city-query" placeholder="搜索城市节点，如武汉" aria-label="搜索城市节点"><div id="city-list" class="city-list"></div><section id="city-inspector" hidden aria-label="城市车次"><div id="city-inspector-content"></div></section></section>
+      <section class="recommendations" aria-label="推荐结果">
+        <div class="result-heading"><h2>发现你的下一程</h2><span id="result-count">准备就绪后自动规划</span></div>
+        <label class="preference">时间价值 <span><strong id="value-label">40</strong> 元 / 小时</span><input id="value-time" type="range" min="0" max="120" step="10" value="40" aria-label="每小时的时间价值"><span class="range-labels"><span>更省钱</span><span>更省时间</span></span></label>
+        <div id="results" aria-live="polite"><div class="empty-state"><div class="loading-track"><i></i></div><strong>正在连接山海</strong><p>加载公开车次与全国铁路路网</p></div></div>
+        <div class="pricing-status" id="pricing-status" aria-live="polite">票价按日期、车次、区间和席别查询。</div>
+        <button type="button" class="more-prices" id="more-prices" hidden>继续核对更多候选区间</button>
+
+        <p class="scope-note" id="scope-note">当日出发 · 总历时 ≤ 48 小时<br>换乘上限包含直达 · 同站 / 同城跨站间隔 30–240 分钟；跨站需自行安排交通</p>
+      </section>
+      <details class="advanced-search"><summary>搜索依据与过程</summary><details class="alternatives" id="alternatives" hidden><summary>按换乘次数查看搜索结果</summary><div id="alternative-list"></div></details><section class="process-panel" id="process-panel" hidden aria-label="寻找过程回放">
+        <div class="process-heading"><span>这条路，怎样找出来？</span><div><button id="trace-play">播放过程</button><button id="trace-toggle" aria-expanded="false" aria-controls="process-body">展开</button></div></div>
+        <div class="process-body" id="process-body" hidden><div id="trace-steps" class="trace-steps"></div><p id="trace-description"></p><div id="trace-metrics" class="trace-metrics"></div><small>回放本次实际计算记录；地图展示其中部分连接。</small></div>
+      </section>
+</details><footer class="sidebar-footer">SHANHAI RAIL ATLAS <span>V0.3</span></footer></aside>
+<section class="visual-workspace" aria-label="路线可视化"><div class="map-toolbar"><div><span class="live-dot"></span><strong id="view-title">在地图上，遇见下一程</strong><p id="map-subtitle">选择左侧方案，探索沿途车站</p></div><button id="comparison-return">← 返回方案对比</button><button id="map-focus" aria-pressed="false">专注地图 ⛶</button><button id="draft-return" class="draft-return" hidden>回到路线草稿 ↩</button><span class="map-stats"><b id="station-count">—</b> 车站 / <b id="train-count">—</b> 车次</span></div>
+<div class="map-stage"><canvas id="rail-map" tabindex="0" aria-label="铁路地图，可拖动、缩放；自由编辑模式下可点击城市节点"></canvas><div class="map-tools"><button id="fit-route" aria-label="定位当前行程" title="定位行程">⌖</button><button id="zoom-in" aria-label="放大地图">＋</button><button id="zoom-out" aria-label="缩小地图">−</button><button id="reset-map" aria-label="全国视图">全国</button></div><div class="map-legend"><label><input type="checkbox" data-layer="G" checked>高铁</label><label><input type="checkbox" data-layer="D" checked>动车</label><label><input type="checkbox" data-layer="K" checked>普速</label></div><div class="map-caption" id="map-caption">拖动探索 · 滚轮缩放</div><div id="station-popup" class="station-popup" hidden></div><div class="map-attribution">GTFS / OpenStreetMap · DataV</div></div>
+<section class="metro-panel" aria-label="动态行程线路图"><div class="metro-heading"><div><span class="eyebrow">JOURNEY IN MOTION</span><h2 id="metro-title">每一站，都看得见。</h2><small class="animation-caption">线路播放示意 · 非实时位置</small></div><div class="metro-controls"><button id="toggle-metro" aria-expanded="false">展开线路 ▴</button><span id="metro-status">选择路线后开始</span><button id="metro-play" disabled>播放行程</button><button id="metro-reset" disabled aria-label="重置行程动画">重置</button></div></div><div id="transfer-notice" aria-live="polite" hidden></div><div id="metro-track" class="metro-track"><p class="muted">正在加载全国铁路路网…</p></div><div class="journey-panel" id="journey-panel" hidden></div></section></section></main>
+<main id="comparison-page" class="comparison-page" hidden aria-label="多方案统一匹配与对比">
+<nav class="comparison-navigation" aria-label="方案管理"><div><button id="library-view" class="active">对比库</button><button id="finals-view">已定行程</button></div><button id="start-visual" class="primary-action" disabled>开始可视化对比 →</button></nav>
+<section id="comparison-library" aria-label="对比库">
+<div class="comparison-heading"><div><span class="eyebrow">YOUR ROUTES, SIDE BY SIDE</span><h1>收集方案，放在一起比较。</h1><p id="compare-caption"></p></div><div><button id="compare-back">返回编辑</button><button id="compare-new" class="primary-action">新建方案 ＋</button></div></div>
+<div class="comparison-tools"><label>出行条件分组<select id="compare-group" aria-label="对比出行条件分组"></select></label><label>综合比较的时间价值<select id="compare-value" aria-label="对比时间价值"><option value="0">0 元 / 小时</option><option value="20">20 元 / 小时</option><option value="40" selected>40 元 / 小时</option><option value="80">80 元 / 小时</option><option value="120">120 元 / 小时</option></select></label><button id="match-all" class="primary-action">统一匹配本组方案</button><button id="stop-matching" hidden>停止匹配</button><button id="undo-plan" hidden>撤销移除</button></div>
+<p id="compare-progress" class="comparison-explainer" role="status"></p><div id="comparison-grid" class="comparison-grid"></div>
+<p class="comparison-footnote">仅比较本组当前选择的候选，不代表全网最优。进入可视化对比后可调整换乘预留时间；默认同站 45 分钟、跨站 90 分钟，综合优选优先排除高风险。刷新后需重新核价。</p>
+</section><section id="decision-content" hidden aria-label="可视化对比"></section><section id="final-content" hidden aria-label="已定行程"></section>
+</main>
+  <dialog id="about-dialog" aria-labelledby="about-title"><div class="dialog-top"><span class="eyebrow">BEHIND THE JOURNEY</span><button id="about-close" class="icon-button" aria-label="关闭说明">✕</button></div><h2 id="about-title">每一条推荐，都有据可循。</h2><div id="about-content"></div></dialog>
+  <div id="toast" role="status" hidden></div>
+  <link rel="stylesheet" href="./embedded.css">
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

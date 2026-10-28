@@ -10,6 +10,7 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
 COPY backend /app/backend
 COPY frontend /app/frontend
+COPY bundled_data /app/bundled_data
 
 RUN mkdir -p /app/data
 

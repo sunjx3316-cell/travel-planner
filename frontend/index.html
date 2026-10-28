@@ -11,12 +11,13 @@
   <link rel="manifest" href="/site.webmanifest">
   <link rel="icon" href="/assets/app-icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/assets/app-icon.svg">
-  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/style.css?v=1.0.0">
+  <link rel="stylesheet" href="/css/rail.css?v=1.0.0">
   <script src="/assets/echarts.min.js"></script>
 </head>
 <body>
   <header>
-    <div class="brand">🧭 旅行智规 <span class="version">v0.1</span></div>
+    <div class="brand">🧭 旅行智规 <span class="version">v1.0</span></div>
     <div class="sub">开局一张中国地图,选出你想去的地方</div>
     <button id="install-app" class="install-app" type="button" hidden>安装到桌面</button>
     <div class="badge" id="mode-badge">加载中...</div>
@@ -27,16 +28,21 @@
       <button id="map-back" class="map-back" style="display:none">← 返回全国</button>
       <div id="map-filters" class="map-filters" style="display:none">
         <button class="filter-chip active" data-cat="全部" onclick="setSpotFilter('全部')">全部</button>
-        <button class="filter-chip" data-cat="自然" onclick="setSpotFilter('自然')">🌿 自然</button>
-        <button class="filter-chip" data-cat="人文" onclick="setSpotFilter('人文')">🏯 人文</button>
-        <button class="filter-chip" data-cat="综合" onclick="setSpotFilter('综合')">🌐 综合</button>
+        <button class="filter-chip" data-cat="自然" onclick="setSpotFilter('自然')"><i class="map-dot nature"></i>自然</button>
+        <button class="filter-chip" data-cat="人文" onclick="setSpotFilter('人文')"><i class="map-dot culture"></i>人文</button>
+        <button class="filter-chip" data-cat="综合" onclick="setSpotFilter('综合')"><i class="map-dot mixed"></i>综合</button>
       </div>
-      <div id="map-layers" class="map-filters" style="display:none;top:56px">
+      <div id="map-layers" class="map-filters" style="display:none">
         <button class="layer-chip active" data-layer="all" onclick="setMapLayer('all')">全部</button>
-        <button class="layer-chip" data-layer="spot" onclick="setMapLayer('spot')">🏞 景区</button>
-        <button class="layer-chip" data-layer="food" onclick="setMapLayer('food')">🏮 美食街</button>
+        <button class="layer-chip" data-layer="spot" onclick="setMapLayer('spot')">景区</button>
+        <button class="layer-chip" data-layer="food" onclick="setMapLayer('food')">美食街</button>
       </div>
       <div id="map"></div>
+      <div class="map-controls" aria-label="地图视图控制">
+        <button type="button" onclick="zoomMap(1.5)" aria-label="放大地图" title="放大地图">+</button>
+        <button type="button" onclick="zoomMap(1 / 1.5)" aria-label="缩小地图" title="缩小地图">−</button>
+        <button type="button" class="map-fit" onclick="fitMapPoints()" aria-label="查看全部标点" title="查看全部标点">⌖</button>
+      </div>
       <div class="map-hint" id="map-hint">点击省份 → 进入该省地图</div>
     </section>
 
@@ -45,6 +51,7 @@
         <button data-tab="cities" class="active">🏙 城市</button>
         <button data-tab="spots">🏞 景区</button>
         <button data-tab="loops">🗺 环线</button>
+        <button type="button" data-action="rail" onclick="TravelRail.open()">🚆 铁路</button>
         <button data-tab="cart">🛒 清单 <span id="cart-count" class="count">0</span></button>
         <button data-tab="plans">🗺 方案</button>
         <button data-tab="trip">📌 我的行程</button>
@@ -65,7 +72,8 @@
   </footer>
 
   <!-- 版本参数让已安装 PWA 的旧脚本缓存失效，确保逻辑更新立即生效。 -->
-  <script src="/js/app.js?v=0.4.3"></script>
-  <script src="/js/workshop.js?v=0.4.3"></script>
+  <script src="/js/app.js?v=1.0.0"></script>
+  <script src="/js/workshop.js?v=1.0.0"></script>
+  <script src="/js/rail.js?v=1.0.0"></script>
 </body>
 </html>

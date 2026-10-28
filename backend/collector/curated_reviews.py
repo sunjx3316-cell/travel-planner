@@ -37,7 +37,11 @@ def city_key(value):
 
 def read_bundle(path):
     with zipfile.ZipFile(path) as archive:
-        info = next((i for i in archive.infolist() if i.filename == "景点评价.json"), None)
+        candidates = [i for i in archive.infolist() if i.filename in {"景点评价.json", "有增量地点补丁.json"}
+                      or re.fullmatch(r"[1-9]\d*地点评价补充\.json", i.filename)]
+        if len(candidates) != 1:
+            raise ValueError("必须包含一个明确的评价格式文件")
+        info = candidates[0]
         if not info or info.file_size > 30 * 1024 * 1024:
             raise ValueError("缺少景点评价.json 或文件超过30MB")
         bundle = json.loads(archive.read(info).decode("utf-8-sig"))
