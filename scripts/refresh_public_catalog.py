@@ -20,7 +20,9 @@ from backend.collector.review_digest import fingerprint
 
 def clean(value):
     if isinstance(value, dict):
-        return {k: clean(v) for k, v in value.items() if k not in {'evidence', 'feedback_file'}}
+        return {k: clean(v) for k, v in value.items() if k not in {
+            'evidence', 'feedback_file', 'evidence_files', 'evidence_base',
+            'evidence_batch', 'feedback_records', 'feedback_refs', 'source_record_file'}}
     if isinstance(value, list):
         return [clean(v) for v in value]
     if isinstance(value, str) and value.startswith(('http://', 'https://')):
@@ -67,7 +69,7 @@ def main():
                     ix = columns.index('payload_json')
                     row[ix] = json.dumps(clean(json.loads(row[ix])), ensure_ascii=False)
                 dest.execute(sql, row)
-        assert not dest.execute("SELECT id FROM spot_media WHERE rights_status != 'verified'").fetchall()
+        assert not dest.execute("SELECT id FROM spot_media WHERE rights_status != 'verified' AND NOT (rights_status='pending' AND provider='xhs_screenshot' AND storage_path LIKE 'private/xhs-screenshots/release-references/%')").fetchall()
         assert not dest.execute('PRAGMA foreign_key_check').fetchall()
     edited = json.loads(args.digests.read_text(encoding='utf-8-sig'))
     payloads = {r[0]: json.loads(r[1]) for r in dest.execute('SELECT catalog_key,payload_json FROM curated_reviews')}
@@ -96,7 +98,7 @@ def main():
     manifest = json.loads((public / 'manifest.json').read_text(encoding='utf-8'))
     manifest['counts'] = counts
     manifest['catalog_updated_at'] = datetime.now(timezone.utc).isoformat()
-    manifest['privacy'] = 'No credentials, cookies, carts, saved plans, raw notes, private screenshots or temporary platform access signatures. Verified public images only.'
+    manifest['privacy'] = 'No credentials, cookies, carts, saved plans, raw notes or temporary platform access signatures. Reference photos, when explicitly packaged separately, retain pending rights and source attribution.'
     manifest['files'] = {str(f.relative_to(public)).replace('\\', '/'): hashlib.sha256(f.read_bytes()).hexdigest()
                          for f in sorted(public.rglob('*')) if f.is_file() and f.name != 'manifest.json'}
     (public / 'manifest.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')

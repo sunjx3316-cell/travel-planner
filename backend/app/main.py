@@ -23,7 +23,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 FRONTEND_DIR = PROJECT_ROOT / "frontend"
 DATA_DIR = PROJECT_ROOT / "data"
 
-app = FastAPI(title="旅行智规 Travel Planner", version="1.1.0")
+app = FastAPI(title="旅行智规 Travel Planner", version="1.1.1")
 
 
 class InMemoryRateLimiter:

@@ -1,22 +1,23 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.1",
   "counts": {
     "cities": 183,
-    "spots": 1331,
-    "curated_reviews": 1331,
-    "spot_media": 543,
+    "spots": 1333,
+    "curated_reviews": 1333,
+    "spot_media": 561,
     "cart_items": 0,
     "plans": 0,
     "notes": 0,
     "review_status": {
       "summary_ready": 1254,
-      "weak_evidence": 77
+      "weak_evidence": 79
     },
     "images": 534,
-    "review_digest_places": 1331,
-    "review_digest_points": 2662
+    "review_digest_places": 1333,
+    "review_digest_points": 2681,
+    "reference_photos": 18
   },
-  "privacy": "No credentials, cookies, carts, saved plans, raw notes, private screenshots or temporary platform access signatures. Verified public images only.",
+  "privacy": "No credentials, cookies, personal lists, itineraries, raw research pages, login QR or comment screenshots. 18 scenic reference photos explicitly requested by user retain pending rights and attribution.",
   "files": {
     "images/0100a7d1bb5fdfd38ebb8eda5cd5806e58465d19141b20705e90ddddd0e459fa.jpg": "0100a7d1bb5fdfd38ebb8eda5cd5806e58465d19141b20705e90ddddd0e459fa",
     "images/017db6ddf2d9cd7d44b42f32e0a070dcea388666b11eb30d5b13c3b4cda6800b.jpg": "017db6ddf2d9cd7d44b42f32e0a070dcea388666b11eb30d5b13c3b4cda6800b",
@@ -552,8 +553,27 @@
     "images/ff2c5485e3e3b75d48df1bd891753d88ef3f565b42d0c662577ac9ede4ee6f42.jpg": "ff2c5485e3e3b75d48df1bd891753d88ef3f565b42d0c662577ac9ede4ee6f42",
     "images/ff65ebae3922a557d38f7b7e3a79bca25b4b7f230305cfecbc49280dce04a823.jpg": "ff65ebae3922a557d38f7b7e3a79bca25b4b7f230305cfecbc49280dce04a823",
     "images/ffa5aee22cf1fd481dd1ecac91e0db9bfe777058610ebe815e26154344655ede.jpg": "ffa5aee22cf1fd481dd1ecac91e0db9bfe777058610ebe815e26154344655ede",
-    "review-digests.json": "cc29e35ec10a451c6e9c8342b8aaa7f9e2e65240d52de40a807713d1e9c6352d",
-    "travel.db": "4ad23ef9f252398e94b2c150a1eca302c08bdc54b303006bac076107e917b3a2"
+    "reference-photos/02854dc0113836ae0016b67866ea6cee187e2dca9523362ccbc73647bbe37d35.jpg": "02854dc0113836ae0016b67866ea6cee187e2dca9523362ccbc73647bbe37d35",
+    "reference-photos/0d81c39dcc63c9ad02558a5b2e1e60f5706c5d836fe8b891efaad24e206c590c.jpg": "0d81c39dcc63c9ad02558a5b2e1e60f5706c5d836fe8b891efaad24e206c590c",
+    "reference-photos/12939275738456b2830821c8d2cce60a9cc77de7e55b9d8dde4700c6db01c9fa.jpg": "12939275738456b2830821c8d2cce60a9cc77de7e55b9d8dde4700c6db01c9fa",
+    "reference-photos/192b97ad44804b730b3ef9b5706241c72b67b56cdc21815d2057ff28922b9b0b.jpg": "192b97ad44804b730b3ef9b5706241c72b67b56cdc21815d2057ff28922b9b0b",
+    "reference-photos/1e91319e15ca5e66e6070d16ea03751c5ff1663cdcaba6c5c8427adac0002f5a.jpg": "1e91319e15ca5e66e6070d16ea03751c5ff1663cdcaba6c5c8427adac0002f5a",
+    "reference-photos/21de51ff7bc0061cc11070b8f624d0510a49162a783299a82a09f56c7ea87993.jpg": "21de51ff7bc0061cc11070b8f624d0510a49162a783299a82a09f56c7ea87993",
+    "reference-photos/2e99d3e13b5fcc9304934d31d6dc8945ef4d87761880ef30fde68452509e96b5.jpg": "2e99d3e13b5fcc9304934d31d6dc8945ef4d87761880ef30fde68452509e96b5",
+    "reference-photos/305cbd01fbe928dbe08832086984abf921c801c362c7513e5e304be0f1755a82.jpg": "305cbd01fbe928dbe08832086984abf921c801c362c7513e5e304be0f1755a82",
+    "reference-photos/4432f45280e1ef80200e9fa7aa32a8428e368cb9d41e337dbb8281635d255c1c.jpg": "4432f45280e1ef80200e9fa7aa32a8428e368cb9d41e337dbb8281635d255c1c",
+    "reference-photos/55058e717742d5adf74d715f8d14f7b4449450437d1deb877e524f5952d2fabc.jpg": "55058e717742d5adf74d715f8d14f7b4449450437d1deb877e524f5952d2fabc",
+    "reference-photos/6edf08d11e39629f71a6f8d6367adca3ce24ce5475bc76f88c0fefd6080971f3.jpg": "6edf08d11e39629f71a6f8d6367adca3ce24ce5475bc76f88c0fefd6080971f3",
+    "reference-photos/6f5ee37033921d5d114e04c8c188dc89943236c51b239d35fd9a161b514d4950.jpg": "6f5ee37033921d5d114e04c8c188dc89943236c51b239d35fd9a161b514d4950",
+    "reference-photos/7d5a3bf2d2b5a60daf7fd592b6eab4d551dcfdaae6419ec5ee144f7dbb74e990.jpg": "7d5a3bf2d2b5a60daf7fd592b6eab4d551dcfdaae6419ec5ee144f7dbb74e990",
+    "reference-photos/886bb63e22bd4da399d4efa4fd002361e5bf603f3508872e5d81cb6ef2e53939.jpg": "886bb63e22bd4da399d4efa4fd002361e5bf603f3508872e5d81cb6ef2e53939",
+    "reference-photos/a0f68a935e2aa649e32890f1fc6726fb542265d2074532671a5ef2a7e9a02166.jpg": "a0f68a935e2aa649e32890f1fc6726fb542265d2074532671a5ef2a7e9a02166",
+    "reference-photos/aa98eb70f07d62c939468f855440d9442726df98159238bb2e2dc598df730b79.jpg": "aa98eb70f07d62c939468f855440d9442726df98159238bb2e2dc598df730b79",
+    "reference-photos/af540ec9ca1279fe424c0a95a4063be27a41338e2912f80fd394e4a6c56c00b1.jpg": "af540ec9ca1279fe424c0a95a4063be27a41338e2912f80fd394e4a6c56c00b1",
+    "reference-photos/fa472205e7e9b4879b03cc8682d035bf073b91fec831eca570453f1058176034.jpg": "fa472205e7e9b4879b03cc8682d035bf073b91fec831eca570453f1058176034",
+    "reference-photos.json": "01516f447cc59806ed5cec6fd65ff949e27164187137c59029c513ac02433db3",
+    "review-digests.json": "387f4941ac887827ccd772ecc252bfd2c8b4ab84cf1523c2847008a23d43bfc8",
+    "travel.db": "0857e2ecdb7cea24f3895770647e0cf9d39f0035871812575ec8d93c7e18eab7"
   },
-  "catalog_updated_at": "2026-10-29T05:19:07.215253+00:00"
+  "catalog_updated_at": "2026-10-29T12:47:29.568729+00:00"
 }

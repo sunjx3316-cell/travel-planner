@@ -1,11 +1,12 @@
 """Exercise a FRESH extracted release, writing test state only to that extraction."""
-import argparse, hashlib, json, os, socket, sqlite3, subprocess, time, urllib.request, urllib.error
+import argparse, hashlib, json, os, re, socket, sqlite3, subprocess, time, urllib.request, urllib.error
 from pathlib import Path
 def smoke(root):
     assert not (root/'data').exists(), 'Use a fresh extraction, not a user installation'
     assert not (root/'.env').exists(), 'Release must not contain credentials'
     release=json.loads((root/'release.json').read_text(encoding='utf-8'))
-    assert release['version']=='1.1.0'
+    version=release['version']
+    assert re.fullmatch(r'\d+\.\d+\.\d+',version)
     for name,digest in release['files'].items(): assert hashlib.sha256((root/name).read_bytes()).hexdigest()==digest,name
     manifest=json.loads((root/'bundled_data/manifest.json').read_text(encoding='utf-8'))
     for name,digest in manifest['files'].items(): assert hashlib.sha256((root/'bundled_data'/name).read_bytes()).hexdigest()==digest,name
@@ -33,12 +34,12 @@ def smoke(root):
                 try: status=json.loads(get('/api/status'));break
                 except OSError: time.sleep(.25)
             else: raise RuntimeError('Startup timeout')
-            assert status['version']=='1.1.0' and not status['llm_available']
+            assert status['version']==version and not status['llm_available']
             settings=api('/api/ai/settings')
             assert settings['mode']=='local' and not settings['configured'] and not settings['onboarded']
             assert settings['key_source']=='none' and settings['connection']['state']=='unconfigured'
             assert b'data-action="rail"' in get('/')
-            assert b'/js/mode.js?v=1.1.0' in get('/')
+            assert ('/js/mode.js?v='+version).encode() in get('/')
             assert '本地规划'.encode() in get('/js/mode.js')
             assert 'AI 增强'.encode() in get('/js/mode.js')
             assert len(get('/css/mode.css'))>100
@@ -53,6 +54,34 @@ def smoke(root):
             assert len(get(path))>100
             detail=json.loads(get(f'/api/spots/{sid}'))
             assert detail['curated_review'] and detail['image_assets']
+            # Bundled screenshots remain pending, local-only references.  The
+            # photo package contains only reviewed/cropped scenic image assets.
+            references=conn.execute("SELECT id,spot_id,storage_path,rights_status FROM spot_media WHERE provider='xhs_screenshot'").fetchall()
+            reference_checks=[]
+            for media_id,spot_id,storage_path,rights in references:
+                assert rights=='pending'
+                assert re.fullmatch(r'private/xhs-screenshots/release-references/[a-f0-9]{64}\.(jpg|jpeg|png|webp)',storage_path)
+                expected=root/'bundled_data/reference-photos'/Path(storage_path).name
+                assert expected.is_file()
+                endpoint=f'/api/local-reference-images/{media_id}'
+                assert hashlib.sha256(get(endpoint)).hexdigest()==hashlib.sha256(expected.read_bytes()).hexdigest()
+                details=api(f'/api/spots/{spot_id}')
+                reference=next(a for a in details['image_assets'] if a.get('local_reference'))
+                assert reference['rights_status']=='pending' and reference['storage_path']==endpoint
+                assert details['curated_review']['digest']['method']=='semantic_reviewed'
+                assert details['curated_review']['digest']['displayed_point_count']<=6
+                rejected_headers=({'X-Forwarded-For':'127.0.0.1'},{'Origin':'https://evil.example'},{'Sec-Fetch-Site':'cross-site'},{'Host':'evil.example'}) if not reference_checks else ({'X-Forwarded-For':'127.0.0.1'},)
+                for headers in rejected_headers:
+                    rejects(endpoint,403,headers=headers)
+                hidden=api(f'/api/spots/{spot_id}',headers={'X-Forwarded-For':'127.0.0.1'})
+                assert not any(a.get('local_reference') for a in hidden['image_assets'])
+                try: get('/bundled_data/reference-photos/'+expected.name)
+                except urllib.error.HTTPError as e: assert e.code==404
+                else: raise AssertionError('Raw pending reference publicly mounted')
+                reference_checks.append({'spot_id':spot_id,'photo':200,'non_owner':403})
+            if version=='1.1.1':
+                assert len(references)==18
+                assert conn.execute('SELECT count(*) FROM curated_reviews').fetchone()[0]==1333
             conn.close()
             assert b'<html' in get('/rail/').lower()
             for path in ('/media/travel.db','/media/xhs_cookies.json','/bundled_data/travel.db','/.env','/data/private/ai_settings.json'):
@@ -94,7 +123,7 @@ def smoke(root):
             (root/'smoke-itinerary.pdf').write_bytes(pdf)
             final_status=api('/api/status')
             assert not final_status['llm_available'] and final_status['ai']['last_call'] is None
-            print(json.dumps({'version':release['version'],'revision':release['revision'],'counts':manifest['counts'],'cases':results,'ai_called':False,'pdf_bytes':len(pdf),'port':port},ensure_ascii=False))
+            print(json.dumps({'version':version,'revision':release['revision'],'counts':manifest['counts'],'cases':results,'reference_photos_checked':reference_checks,'ai_called':False,'pdf_bytes':len(pdf),'port':port},ensure_ascii=False))
         finally:
             proc.terminate();proc.wait(timeout=15)
 if __name__=='__main__':

@@ -1,6 +1,12 @@
 # 旅行智规 Travel Planner
 
-## v1.1.0：两种规划模式
+## v1.1.1：精简评价与城市资料更新
+
+本版内置183个目的地、1,333个地点及评价、534张原图库照片和18张景点参考照片。79处仍为弱证据，不把攻略建议、重复作者或周边店铺体验当作新增独立评价。评价首屏突出重点，完整证据与分歧可展开；新增柳州和大理资料保留历史运营条件及地点边界。
+
+18张参考照片已检查并裁掉网页界面，原始研究页、评论截图、登录二维码不随包提供。照片来源及署名保留，公开转载授权仍未核实，不标为已获授权；程序仅通过本机参考图入口展示，不通过公共静态目录直接暴露。
+
+### 两种规划模式
 
 首次打开先选择 **本地规划** 或 **AI 增强**，之后从顶部模式按钮切换；两者共用资料、清单、工作坊与最终行程，不创建两套重复页面。
 
@@ -14,11 +20,11 @@
 
 回归命令：`python -m pytest backend/tests -q`；`node scripts/test_workshop.cjs`、`node scripts/test_map.cjs`、`node scripts/test_planning_preferences.cjs`。新增模式安全测试及单城、多城、甘南环线、亲子／紧凑／轻松的时间预算测试。
 
-本节功能包含在 v1.1.0 源码和 Windows 免安装 Release 中。下载包内置运行环境、评价资料及图片，不包含开发者的 API Key、个人清单或已保存方案。
+本节功能包含在 v1.1.1 源码和 Windows 免安装 Release 中。下载包内置运行环境、评价资料及图片，不包含开发者的 API Key、个人清单或已保存方案。
 
-## v1.1.0 快速使用（2026-10-28）
+## v1.1.1 快速使用（2026-10-29）
 
-Windows 用户从 [Releases](https://github.com/sunjx3316-cell/travel-planner/releases/latest) 下载 `travel-planner-1.1.0-windows-x64.zip`，**完整解压**后双击 `start.bat`，访问 http://127.0.0.1:8000/ 。首次进入选择本地规划或 AI 增强；本地规划无需安装 Python、无需填写 Key。关闭启动窗口停止服务。端口占用时先关闭旧版，勿同时启动两个实例。
+Windows 用户从 [Releases](https://github.com/sunjx3316-cell/travel-planner/releases/latest) 下载 `travel-planner-1.1.1-windows-x64.zip`，**完整解压**后双击 `start.bat`，访问 http://127.0.0.1:8000/ 。首次进入选择本地规划或 AI 增强；本地规划无需安装 Python、无需填写 Key。关闭启动窗口停止服务。端口占用时先关闭旧版，勿同时启动两个实例。
 
 同 Wi-Fi 手机体验可运行 `start-lan.bat`，仅在可信局域网放行防火墙；默认启动不会开放局域网。请勿直接将本地单用户版本暴露公网。
 

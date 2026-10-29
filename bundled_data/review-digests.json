@@ -6582,7 +6582,7 @@
   },
   {
     "catalog_key": "83bd7779114378e652be998f3902ae379d861a86072902c2fc5c0d14404fe205",
-    "input_hash": "30e48cfe7754d81993417c4c70257b9261aee98b9ee016b01e9f8b6b5c6975f8",
+    "input_hash": "fdd9a001c655381e007a25fdcafff81c6e211021f94df570a83e37dd6cc1ed1e",
     "city": "大理",
     "name": "理想邦",
     "groups": [
@@ -6592,31 +6592,51 @@
         "points": [
           {
             "label": "蓝白建筑",
-            "text": "三访游客仍喜欢依山层叠的蓝白建筑、小巷与苍洱背景，但更怀念早期少店少收费点的状态。",
+            "text": "三访游客仍喜欢层叠蓝白建筑、小巷与苍洱背景，新作者更倾向拍照、喝咖啡慢坐。",
             "source_refs": [
-              "s1"
+              "s1",
+              "dot-dl-s12"
             ],
-            "qualification": "个人多次到访比较，非商业化程度统计"
+            "qualification": "个人偏好，非必去结论。",
+            "feedback_refs": [],
+            "evidence_batch": "2026-10-29-dot-currentrun-complete11"
           }
         ]
       },
       {
         "key": "cautions",
         "title": "提前留意",
-        "points": []
+        "points": [
+          {
+            "label": "机位分区域",
+            "text": "公共街巷、收费花园及酒店咖啡馆机位要分开，别把子区票价当全区总门票。",
+            "source_refs": [
+              "s2",
+              "s3",
+              "dot-dl-s11",
+              "dot-dl-s12"
+            ],
+            "qualification": "现行收费另核；不声称所有角度收费或公共区强制消费。",
+            "feedback_refs": [],
+            "evidence_batch": "2026-10-29-dot-currentrun-complete11"
+          }
+        ]
       },
       {
         "key": "conditions",
         "title": "玩法与条件",
         "points": [
           {
-            "label": "机位与坡道",
-            "text": "公共区可逛，部分网红机位另属收费花园；步行有楼梯陡坡，民宿咖啡馆也可能询问消费。",
+            "label": "坡道与花园",
+            "text": "步行有楼梯陡坡；花园游客见到亲子设施，另有评论者喜欢当次雨停后的人少花多。",
             "source_refs": [
               "s2",
-              "s3"
+              "dot-dl-s11",
+              "dot-dl-s12"
             ],
-            "qualification": "当次观察非公共区强制消费结论，当前车费与区域规则需核对"
+            "qualification": "区域、天气和兴趣影响体验，非固定花况保证。",
+            "feedback_refs": [],
+            "evidence_batch": "2026-10-29-dot-currentrun-complete11"
           }
         ]
       }
@@ -6708,7 +6728,7 @@
   },
   {
     "catalog_key": "0e3562f7e810503a8d8b0edbfd4db714881af93577cf2aeb2e1b29ba40f8c002",
-    "input_hash": "31104053e3fc8eaa01b56526a166ecc844444e4e6baeb3954eb8727a024041a1",
+    "input_hash": "b5ea90c8ed31d417bc6fab17e40a7a70cff60cbc4ccb89f3d6847cfe2354a6f0",
     "city": "大理",
     "name": "龙山公园",
     "groups": [
@@ -6717,25 +6737,36 @@
         "title": "有什么特点",
         "points": [
           {
-            "label": "城湖俯瞰",
-            "text": "游客认为观景台和塔可远看洱海与下关，另一位喜欢慢步上山后看城区夜景。",
+            "label": "山海远眺",
+            "text": "旧评与新作者都喜欢观景台、山路或塔楼的洱海下关视野，一位徒步时游客很少。",
             "source_refs": [
               "s1",
-              "s2"
+              "s2",
+              "dot-dl-s22",
+              "dot-dl-s23"
             ],
-            "qualification": "个人观景体验，夜间开放和通行条件需另核"
+            "qualification": "少人是当次；夜间和塔楼开放未核。",
+            "feedback_refs": [],
+            "evidence_batch": "2026-10-29-dot-currentrun-complete11"
           }
         ]
       },
       {
-        "key": "cautions",
-        "title": "提前留意",
-        "points": []
-      },
-      {
         "key": "conditions",
         "title": "玩法与条件",
-        "points": []
+        "points": [
+          {
+            "label": "不作露营保证",
+            "text": "作者的露营仍是设想、没见草坪且忘记入口；圆盘塔也不能与明珠球塔混配。",
+            "source_refs": [
+              "dot-dl-s22",
+              "dot-dl-s23"
+            ],
+            "qualification": "不编导航，不把办公建筑当可自由进入的景区。",
+            "feedback_refs": [],
+            "evidence_batch": "2026-10-29-dot-currentrun-complete11"
+          }
+        ]
       }
     ]
   },
@@ -24366,7 +24397,7 @@
   },
   {
     "catalog_key": "3cdd1c5b64d7349394e4dcce680a2d455372a4da5a51ae131df41264338276b1",
-    "input_hash": "7855cc3287a5ee0324323c9aff11b3763de4c6063981c4b0786ef042613f1c40",
+    "input_hash": "be2c7de3590031ab3201532f9f5e0b9b99bd37902f4cca2a4d2aebce8a169c6b",
     "city": "大理",
     "name": "才村码头",
     "groups": [
@@ -24375,13 +24406,51 @@
         "title": "有什么特点",
         "points": [
           {
-            "label": "码头取景",
-            "text": "游客喜欢石砌防浪堤与小船景致；另一位觉得周边可逛内容、小吃较少，更偏拍照短停。",
+            "label": "沿湖短停",
+            "text": "旧评喜欢防浪堤、小船景致，也有人觉得可逛内容较少，更适合湖边短停。",
             "source_refs": [
               "s1",
               "s2"
             ],
-            "qualification": "不同年份个人体验"
+            "qualification": "不同年份个人体验，旧航线不作当前安排。",
+            "feedback_refs": [],
+            "evidence_batch": "2026-10-29-dot-currentrun-complete11"
+          },
+          {
+            "label": "傍晚氛围",
+            "text": "新作者喜欢约17点的光线，遇歌手旁有人席地听歌。",
+            "source_refs": [
+              "dot-dl-s06"
+            ],
+            "qualification": "个人偏好；不保证每天演出或同样光线。",
+            "feedback_refs": [],
+            "evidence_batch": "2026-10-29-dot-currentrun-complete11"
+          }
+        ]
+      },
+      {
+        "key": "cautions",
+        "title": "提前留意",
+        "points": [
+          {
+            "label": "先核对门区",
+            "text": "作者与评论者都提到所见码头门区被围；不要把乘船门区等同整段湖岸，更不要翻越。",
+            "source_refs": [
+              "dot-dl-s10"
+            ],
+            "qualification": "历史到访线索，非当前封闭公告。",
+            "feedback_refs": [],
+            "evidence_batch": "2026-10-29-dot-currentrun-complete11"
+          },
+          {
+            "label": "岸边有落差",
+            "text": "一位作者不喜欢局部藻类气味和围栏，同时说明没有垃圾。",
+            "source_refs": [
+              "dot-dl-s10"
+            ],
+            "qualification": "不代表整个洱海水质或当前状况。",
+            "feedback_refs": [],
+            "evidence_batch": "2026-10-29-dot-currentrun-complete11"
           }
         ]
       },
@@ -24390,12 +24459,14 @@
         "title": "玩法与条件",
         "points": [
           {
-            "label": "日出航线",
-            "text": "一位建议住才村时来拍日出，但2020年的船数航线不能作当前航行安排。",
+            "label": "摄影可自选",
+            "text": "有作者遇摄影招揽但选择自己拍；跟拍并非这条经历中的必选消费。",
             "source_refs": [
-              "s1"
+              "dot-dl-s06"
             ],
-            "qualification": "旧行程建议"
+            "qualification": "单次消费偏好。",
+            "feedback_refs": [],
+            "evidence_batch": "2026-10-29-dot-currentrun-complete11"
           }
         ]
       }
@@ -24403,7 +24474,7 @@
   },
   {
     "catalog_key": "e48a5bef222ddd551db9ffd33806498cf085570178a3ff612eeb6e384975fc1b",
-    "input_hash": "488fe3556f6ba7e467f4905a70e27e7370a9772ac4209a00d14ac9674942752d",
+    "input_hash": "1540227f411957e9f7eb58e0997d3af592c09216398036ce9662418726b2161f",
     "city": "大理",
     "name": "洱海公园",
     "groups": [
@@ -24412,35 +24483,34 @@
         "title": "有什么特点",
         "points": [
           {
-            "label": "沿湖视野",
-            "text": "游客喜欢沿湖看苍山、市区与两岸远景，一位冬访者也喜欢越冬海鸥和安静散步。",
+            "label": "湖岸与登高",
+            "text": "既可沿湖看苍山城区，也有作者喜欢登高俯瞰、亭台花草；冬访者曾见海鸥。",
             "source_refs": [
               "s1",
-              "s2"
+              "s2",
+              "dot-dl-s13",
+              "dot-dl-s14"
             ],
-            "qualification": "晴景海鸥受季节天气影响"
+            "qualification": "晴景、海鸥和灯光受季节与时段影响。",
+            "feedback_refs": [],
+            "evidence_batch": "2026-10-29-dot-currentrun-complete11"
           }
         ]
-      }
-    ]
-  },
-  {
-    "catalog_key": "a6ca867db095a3cde9253bc935eb9c089dac6a63ec349c0eca258c3627953b4a",
-    "input_hash": "987c2630a7ce81a272755ea6f8862f9aaa96820b7322d1ddba4c516e2bc5ed7e",
-    "city": "大理",
-    "name": "洱海月湿地公园",
-    "groups": [
+      },
       {
-        "key": "features",
-        "title": "有什么特点",
+        "key": "cautions",
+        "title": "提前留意",
         "points": [
           {
-            "label": "湿地步道",
-            "text": "游客喜欢植被、水边栈道和老木船，称有时可遇留鸟候鸟，不保证每次观鸟有收获。",
+            "label": "先看上山路线",
+            "text": "两位新作者都提到台阶；一人绕找入口多走路，评论提出的公路尚未复核。",
             "source_refs": [
-              "s1"
+              "dot-dl-s13",
+              "dot-dl-s14"
             ],
-            "qualification": "个人沿途观察"
+            "qualification": "不是所有路径都只能爬阶，也不保证无障碍。",
+            "feedback_refs": [],
+            "evidence_batch": "2026-10-29-dot-currentrun-complete11"
           }
         ]
       },
@@ -24449,12 +24519,67 @@
         "title": "玩法与条件",
         "points": [
           {
-            "label": "历史维修",
-            "text": "2016年游客曾遇维修冷风、觉得步行到达累，不能据此判断现在仍施工或交通不便。",
+            "label": "共享车看范围",
+            "text": "一位作者曾遇共享车超运营区需推回，租车前先看品牌规则。",
+            "source_refs": [
+              "dot-dl-s13"
+            ],
+            "qualification": "单次未指明品牌，不是全湖禁行结论。",
+            "feedback_refs": [],
+            "evidence_batch": "2026-10-29-dot-currentrun-complete11"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "catalog_key": "a6ca867db095a3cde9253bc935eb9c089dac6a63ec349c0eca258c3627953b4a",
+    "input_hash": "248f7daf5ec6acf46115b5de5d6010b1857da38267cdd2108fa08b121fc4bea5",
+    "city": "大理",
+    "name": "洱海月湿地公园",
+    "groups": [
+      {
+        "key": "features",
+        "title": "有什么特点",
+        "points": [
+          {
+            "label": "湿地慢走",
+            "text": "游客喜欢植被、水边栈道和老木船；新作者更看重路过或饭后坐着吹风看云。",
+            "source_refs": [
+              "s1",
+              "dot-dl-s17",
+              "dot-dl-s18"
+            ],
+            "qualification": "日常散步型体验，客流与观鸟不保证。",
+            "feedback_refs": [],
+            "evidence_batch": "2026-10-29-dot-currentrun-complete11"
+          }
+        ]
+      },
+      {
+        "key": "conditions",
+        "title": "玩法与条件",
+        "points": [
+          {
+            "label": "不推断能涉水",
+            "text": "安静只是到访感受，浅水照片和玩石头建议不是允许或安全涉水的证明。",
+            "source_refs": [
+              "dot-dl-s17",
+              "dot-dl-s18"
+            ],
+            "qualification": "新批仅两条作者体验，无确认有效独立评论。",
+            "feedback_refs": [],
+            "evidence_batch": "2026-10-29-dot-currentrun-complete11"
+          },
+          {
+            "label": "旧维修不外推",
+            "text": "2016年游客曾遇维修冷风、步行疲累，不能判断现在仍施工或交通不便。",
             "source_refs": [
               "s2"
             ],
-            "qualification": "历史条件"
+            "qualification": "历史条件。",
+            "feedback_refs": [],
+            "evidence_batch": "2026-10-29-dot-currentrun-complete11"
           }
         ]
       }
@@ -24545,7 +24670,7 @@
   },
   {
     "catalog_key": "c879e4625d8dac7ac2f313be4bfcb013f5b07ea9addb31ef38d7b484066f3698",
-    "input_hash": "3ad70b5e56966cd38a9363e7b9ab15e683ab5f651d37dc9723b829e2c7800bdc",
+    "input_hash": "42235f0e7cf35a2758c6b591c3a902bbbbb5d3f56e32fde304e13a66e89120d4",
     "city": "大理",
     "name": "龙龛码头",
     "groups": [
@@ -24555,12 +24680,14 @@
         "points": [
           {
             "label": "湖边取景",
-            "text": "游客喜欢码头湖景及附近水杉在好天气下的照片效果，也有人觉得拍照人多、摄影揽客多。",
+            "text": "游客喜欢湖景与水杉取景，也有人遇拍照人群、摄影揽客较多。",
             "source_refs": [
               "s1",
               "s3"
             ],
-            "qualification": "天气与人流属当次"
+            "qualification": "天气、人流和水杉景色均有条件。",
+            "feedback_refs": [],
+            "evidence_batch": "2026-10-29-dot-currentrun-complete11"
           }
         ]
       },
@@ -24570,11 +24697,39 @@
         "points": [
           {
             "label": "揽客投诉",
-            "text": "一名游客称停车口厕所旁拉车者因其不上车而辱骂，经营身份与后续处理未核实。",
+            "text": "一名游客称停车口厕所旁拉车者因其不上车而辱骂，身份及后续处理未核实。",
             "source_refs": [
               "s2"
             ],
-            "qualification": "非码头员工整体结论"
+            "qualification": "不外推整个码头服务。",
+            "feedback_refs": [],
+            "evidence_batch": "2026-10-29-dot-currentrun-complete11"
+          }
+        ]
+      },
+      {
+        "key": "conditions",
+        "title": "玩法与条件",
+        "points": [
+          {
+            "label": "午后与亲水",
+            "text": "新作者午后觉得晒、所到岸段有围栏；想近水游玩需先了解实际可达范围。",
+            "source_refs": [
+              "dot-dl-s03"
+            ],
+            "qualification": "只反映其当次观景台附近体验。",
+            "feedback_refs": [],
+            "evidence_batch": "2026-10-29-dot-currentrun-complete11"
+          },
+          {
+            "label": "自驾窄路",
+            "text": "该作者经村内窄路接近时感到紧张，宜先核对停车与步行路线。",
+            "source_refs": [
+              "dot-dl-s03"
+            ],
+            "qualification": "不是所有进场路线，也不提供未经核实的导航。",
+            "feedback_refs": [],
+            "evidence_batch": "2026-10-29-dot-currentrun-complete11"
           }
         ]
       }
@@ -40979,7 +41134,7 @@
   },
   {
     "catalog_key": "4e5122d3e35d6c083a78a38e942d8d86bf6381072ede8f1a6112918032cc26bf",
-    "input_hash": "7a4bab946b886cbc24e35e95bf23d0baa79399659d1d24c5e2d37d5aa7f67735",
+    "input_hash": "ab9613fe317705d0db64470b7e3d9deae8182a5116a3114a3cb189379c9dce4b",
     "city": "大理",
     "name": "大理白族自治州博物馆",
     "groups": [
@@ -40988,14 +41143,34 @@
         "title": "有什么特点",
         "points": [
           {
-            "label": "白族庭院",
-            "text": "游客喜欢白族庭院小桥照壁，以及服饰、农耕、青铜陶器和家居文物，借此了解大理地方生活。",
+            "label": "庭院回廊",
+            "text": "游客喜欢白族庭院、小桥照壁和地方生活展陈；新作者也喜欢雨天沿花园回廊轻松逛馆。",
             "source_refs": [
               "s1",
               "s2",
-              "s3"
+              "s3",
+              "dot-dl-s07"
             ],
-            "qualification": "2019至2025不同展期和兴趣，内容丰富度评价不一。"
+            "qualification": "不同展期与兴趣，展陈内容会变化。",
+            "feedback_refs": [],
+            "evidence_batch": "2026-10-29-dot-currentrun-complete11"
+          }
+        ]
+      },
+      {
+        "key": "cautions",
+        "title": "提前留意",
+        "points": [
+          {
+            "label": "体量与细看",
+            "text": "部分作者觉得单馆、藏品体量有限；一人遇光线和玻璃清洁影响观看，评论者希望展签更具体。",
+            "source_refs": [
+              "dot-dl-s07",
+              "dot-dl-s09"
+            ],
+            "qualification": "个人期待与当次展陈，不是全馆现状结论。",
+            "feedback_refs": [],
+            "evidence_batch": "2026-10-29-dot-currentrun-complete11"
           }
         ]
       },
@@ -41004,13 +41179,16 @@
         "title": "玩法与条件",
         "points": [
           {
-            "label": "布展装修",
-            "text": "2023年部分展厅仍布展，2025年游客中心装修未进入，临展和施工影响当次可看范围。",
+            "label": "先核对展厅",
+            "text": "旧评遇布展、游客中心装修，新帖也曾遇通史馆改造；当前开放范围需另核实。",
             "source_refs": [
               "s1",
-              "s2"
+              "s2",
+              "dot-dl-s09"
             ],
-            "qualification": "不能据此认定当前关闭或评价未进入的影视厅。"
+            "qualification": "历史线索，不认定目前仍关闭。",
+            "feedback_refs": [],
+            "evidence_batch": "2026-10-29-dot-currentrun-complete11"
           }
         ]
       }
@@ -41099,7 +41277,7 @@
   },
   {
     "catalog_key": "c94d68a9440c8e3c1aa94c423e9c129c745efab5bb03d361f1b7a52f83c2670d",
-    "input_hash": "5fbb9f48931372f5af8adc941c5161849677c765a66512dd135b88ba3ad8d72c",
+    "input_hash": "3940a8ce059cca6133e7cfecec1b313a40145c3f75012c00076bde4f14312b3a",
     "city": "大理",
     "name": "明珠广场",
     "groups": [
@@ -41108,12 +41286,30 @@
         "title": "有什么特点",
         "points": [
           {
-            "label": "红道树景",
-            "text": "一位作者阴天来后放晴又返回，喜欢红色起伏步道配树木橙屋顶，觉得午后慢走拍照舒服。",
+            "label": "红色起伏步道",
+            "text": "同日两访的作者喜欢步道、树木与城市屋顶组合，晴后愿意再来慢走拍照。",
             "source_refs": [
               "s1"
             ],
-            "qualification": "同日两访不等于两名作者，不保证一直少人。"
+            "qualification": "同一作者不重复计数，不保证一直少人。",
+            "feedback_refs": [],
+            "evidence_batch": "2026-10-29-dot-currentrun-complete11"
+          }
+        ]
+      },
+      {
+        "key": "cautions",
+        "title": "提前留意",
+        "points": [
+          {
+            "label": "登高看个人",
+            "text": "另一作者登高后嫌绕行、景观回报有限；新读评论者走到下方就因高度放弃。",
+            "source_refs": [
+              "s2"
+            ],
+            "qualification": "审美、体力与登高接受度不同，不是安全事故结论。",
+            "feedback_refs": [],
+            "evidence_batch": "2026-10-29-dot-currentrun-complete11"
           }
         ]
       },
@@ -41122,13 +41318,16 @@
         "title": "玩法与条件",
         "points": [
           {
-            "label": "登高分歧",
-            "text": "另一位登球塔方向后嫌红道绕行、景观回报不足；对山顶建筑荒废或招商的描述也未独立核实。",
+            "label": "入口待核",
+            "text": "新攻略门牌与原帖冲突，山顶建筑荒废或招商也只是不同时间观察，保留原位置不猜入口。",
             "source_refs": [
               "s1",
-              "s2"
+              "s2",
+              "dot-dl-s20"
             ],
-            "qualification": "路线审美不同，不等于破损事故或整个公园永久废弃。"
+            "qualification": "不认定永久关闭，也不保证当前开放。",
+            "feedback_refs": [],
+            "evidence_batch": "2026-10-29-dot-currentrun-complete11"
           }
         ]
       }
@@ -41303,7 +41502,7 @@
   },
   {
     "catalog_key": "c5c660ce2c8a0508c4d045b398686049ed964225be5fc0a57666a31061ca051e",
-    "input_hash": "3d93ec7b17ff1afacee6c924d1964e5c8dc023d5bbca04178cb6c18035342045",
+    "input_hash": "91b8be97edb0bdb475d57a880cee1ce3e83dd225b47253f24aa4697025b8f4c0",
     "city": "大理",
     "name": "龙尾关遗址",
     "groups": [
@@ -41313,11 +41512,31 @@
         "points": [
           {
             "label": "拱门光影",
-            "text": "作者喜欢龙尾关拱门城楼的氛围与拱洞光影，觉得容易拍出故事感，照片对应城门建筑。",
+            "text": "原作者喜欢拱门城楼和拱洞光影，本批照片也清楚对应城门。",
             "source_refs": [
-              "s2"
+              "s2",
+              "dot-dl-s15"
             ],
-            "qualification": "老街市场咖啡等大范围体验不全归给遗址。"
+            "qualification": "只支持城门建筑观赏，不扩大到整条老街。",
+            "feedback_refs": [],
+            "evidence_batch": "2026-10-29-dot-currentrun-complete11"
+          }
+        ]
+      },
+      {
+        "key": "conditions",
+        "title": "玩法与条件",
+        "points": [
+          {
+            "label": "老街另看",
+            "text": "新文字主要讲上坡接近路线与周边小馆，不能补算为遗址内部评价。",
+            "source_refs": [
+              "dot-dl-s15",
+              "dot-dl-s16"
+            ],
+            "qualification": "新批严格主体体验仍缺，不用周边餐饮替代。",
+            "feedback_refs": [],
+            "evidence_batch": "2026-10-29-dot-currentrun-complete11"
           }
         ]
       }
@@ -45212,7 +45431,7 @@
   },
   {
     "catalog_key": "83c4cfbcd35d485b4d26614eea2cf9e143cf7ad7dd280f1ae4281038ccf9c38d",
-    "input_hash": "5f12834c295db5559d82c7a47d7826a05c89a2f67672627d0da3186b6f381bf2",
+    "input_hash": "7b4c0b0ba8eba004bff0f6fe2f7af1a2e2e59c1277196e10bc4beb451d3f0476",
     "city": "柳州",
     "name": "江滨公园",
     "groups": [
@@ -51417,6 +51636,108 @@
               "s2"
             ],
             "qualification": "附近无店说法已有门店位置反例，现行经营仍待核。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "catalog_key": "6072e129fbf763e17179ad3703000ebee86cc67755971f45e78384da07f970f2",
+    "city": "柳州",
+    "name": "柳州文庙",
+    "input_hash": "21984d7ffdd1fe7b199e583897d8aa153318a1386cf62e8aa5777ff131280f3e",
+    "groups": [
+      {
+        "key": "features",
+        "title": "有什么特点",
+        "points": [
+          {
+            "label": "临江古建",
+            "text": "金顶、红墙和临江建筑是作者喜欢的拍照特点，也有顺路入内吹江风、看水上巴士的体验。",
+            "source_refs": [
+              "lz18",
+              "dot-lz03",
+              "lz21"
+            ],
+            "qualification": "个人到访感受；不保证固定光线与客流。"
+          }
+        ]
+      },
+      {
+        "key": "conditions",
+        "title": "玩法与条件",
+        "points": [
+          {
+            "label": "顺路慢逛",
+            "text": "可按建筑摄影或沿江休息的兴趣安排短逛；有作者觉得不必专程绕行，是个人取舍。",
+            "source_refs": [
+              "lz21",
+              "dot-lz03"
+            ],
+            "qualification": "未核实统一游览时长。"
+          },
+          {
+            "label": "开放待核",
+            "text": "攻略对登塔、上楼和开放时段存在冲突，夜间亮灯也有作者未实际等到，行前应再确认。",
+            "source_refs": [
+              "lz18",
+              "lz19",
+              "dot-lz03"
+            ],
+            "qualification": "不把旧攻略当现行运营保证；独立具体评论仍不足。"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "catalog_key": "62d57c1a9aaab1a480856b47389ec54c0abc055661862ed24f1e55b0d59672b3",
+    "city": "柳州",
+    "name": "五星商业步行街",
+    "input_hash": "f7593f2859c5e759460b22296bde70260cc2d270e653e87f80e656f0f3db4752",
+    "groups": [
+      {
+        "key": "features",
+        "title": "有什么特点",
+        "points": [
+          {
+            "label": "逛吃便利",
+            "text": "短住游客觉得附近逛街找吃的方便，本地作者更看重熟悉老店和日常烟火气。",
+            "source_refs": [
+              "dot-lz09",
+              "dot-lz11"
+            ],
+            "qualification": "个人体验，不等于所有店铺品质或全体游客共识。"
+          }
+        ]
+      },
+      {
+        "key": "cautions",
+        "title": "提前留意",
+        "points": [
+          {
+            "label": "主街预期",
+            "text": "有作者觉得主街小吃偏贵、游客多，适合顺路短逛；规模与夜景是否出彩也有个人偏好差异。",
+            "source_refs": [
+              "lz21",
+              "dot-lz09"
+            ],
+            "qualification": "当次价格与客流观感，非当前普遍情况或客观排名。"
+          }
+        ]
+      },
+      {
+        "key": "conditions",
+        "title": "玩法与条件",
+        "points": [
+          {
+            "label": "街区边界",
+            "text": "商业步行街与旁边夜市、美食街分开看；地图标点只作主街位置参考，不代表所有入口。",
+            "source_refs": [
+              "dot-lz11",
+              "dot-lzi01"
+            ],
+            "qualification": "商圈交通抱怨未确认主街归属，不混作主街独立差评。"
           }
         ]
       }

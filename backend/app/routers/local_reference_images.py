@@ -1,5 +1,6 @@
 """Owner-only reference screenshots; never mark pending third-party media licensed."""
 import ipaddress
+import re
 from urllib.parse import urlsplit
 
 from fastapi import APIRouter, HTTPException, Request
@@ -65,6 +66,14 @@ def reference_image(media_id: int, request: Request):
         raise HTTPException(404, "参考截图不存在")
     private_root = (db.DB_PATH.parent / "private/xhs-screenshots").resolve()
     candidate = (db.DB_PATH.parent / row["storage_path"]).resolve()
-    if not candidate.is_relative_to(private_root) or candidate.suffix.lower() not in (".jpg", ".jpeg", ".png", ".webp") or not candidate.is_file():
+    if not candidate.is_relative_to(private_root) or candidate.suffix.lower() not in (".jpg", ".jpeg", ".png", ".webp"):
         raise HTTPException(404, "参考截图不存在")
+    if not candidate.is_file():
+        # Explicitly selected release photos only; never expose research folders.
+        expected_parent = private_root / 'release-references'
+        if candidate.parent != expected_parent or not re.fullmatch(r'[0-9a-f]{64}\.jpg', candidate.name):
+            raise HTTPException(404, "参考截图不存在")
+        candidate = db.PROJECT_ROOT / 'bundled_data/reference-photos' / candidate.name
+        if not candidate.is_file():
+            raise HTTPException(404, "参考截图不存在")
     return FileResponse(candidate, headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
