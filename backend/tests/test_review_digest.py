@@ -67,7 +67,7 @@ def test_edited_digest_requires_current_evidence_and_valid_refs(tmp_path):
     assert get_review_digest(value, 'k', path)['method'] == 'source_linked_extractive'
 
 
-def test_public_catalog_digests_are_complete_and_private_media_absent():
+def test_public_catalog_digests_are_complete_and_only_selected_photos_are_bundled():
     import sqlite3
     from pathlib import Path
     root = Path(__file__).resolve().parents[2]
@@ -80,4 +80,16 @@ def test_public_catalog_digests_are_complete_and_private_media_absent():
             assert get_review_digest(value, key, root / 'data/nonexistent-digest.json')['method'] == 'semantic_reviewed'
         for table in ('plans', 'cart_items', 'notes', 'spot_summaries'):
             assert conn.execute(f'SELECT COUNT(*) FROM {table}').fetchone()[0] == 0
-        assert not conn.execute("SELECT id FROM spot_media WHERE rights_status != 'verified'").fetchall()
+        selected = json.loads((root / 'bundled_data/reference-photos.json').read_text(encoding='utf-8'))
+        pending = conn.execute("SELECT id,spot_id,storage_path,provider,rights_status FROM spot_media WHERE rights_status != 'verified'").fetchall()
+        assert {row[0] for row in pending} == {photo['media_id'] for photo in selected}
+        by_id = {photo['media_id']: photo for photo in selected}
+        import hashlib
+        for mid, sid, path, provider, rights in pending:
+            photo = by_id[mid]
+            assert provider == 'xhs_screenshot' and rights == photo['rights_status'] == 'pending'
+            assert photo['included_by'] == 'explicit_user_request' and photo['spot_id'] == sid
+            assert photo['public_redistribution_authorization'] == 'not_verified'
+            assert path == 'private/xhs-screenshots/release-references/' + photo['sha256'] + '.jpg'
+            file = root / 'bundled_data/reference-photos' / (photo['sha256'] + '.jpg')
+            assert hashlib.sha256(file.read_bytes()).hexdigest() == photo['sha256']
