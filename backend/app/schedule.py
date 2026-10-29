@@ -14,6 +14,11 @@ FULL = "全天"
 SLOT_ORDER = {DAWN: 1, MORNING: 2, AFTERNOON: 3, SUNSET: 4, EVENING: 5, FULL: 6}
 
 
+def is_morning_market(name: str, tags: list = None) -> bool:
+    text = f"{name} {' '.join(tags or [])}"
+    return any(k in text for k in ("早市", "早餐", "晨市"))
+
+
 def recommend_time(name: str, tags: list = None, commercial: dict = None) -> tuple:
     """返回 (时段, 理由)。规则按优先级排列,名称+标签共同判断。"""
     text = f"{name} {' '.join(tags or [])}"
@@ -23,6 +28,9 @@ def recommend_time(name: str, tags: list = None, commercial: dict = None) -> tup
     # 花市:鲜花市场凌晨开市,清晨最新鲜
     if any(k in text for k in ("花市", "花卉市场")):
         return (DAWN, "鲜花市场凌晨开市,清晨花最新鲜,价格也友好")
+    # 早市优先于美食街/小吃标签，不能当作晚间填充。
+    if is_morning_market(name, tags):
+        return (MORNING, "早市/早餐体验优先上午，具体摊位营业时间请提前确认")
     # 雪山/冰川/徒步/登山/穿越:大景区,含往返车程需一整天
     if any(k in text for k in ("雪山", "冰川", "徒步", "穿越", "登山", "四姑娘", "稻城", "雨崩")):
         return (FULL, "雪山大景区,含往返车程要一整天,务必尽早出发")

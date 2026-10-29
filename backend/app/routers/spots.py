@@ -9,7 +9,7 @@ from fastapi import APIRouter, Header, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from ...ai.pipeline import summarize_spot
-from ..db import get_conn
+from ..db import get_conn, DB_PATH
 from ..models import SpotDetailOut, SummaryCard
 
 router = APIRouter(prefix="/api", tags=["spots"])
@@ -23,7 +23,7 @@ def _loads(s, default=None):
 
 
 @router.get("/spots/{spot_id}", response_model=SpotDetailOut)
-def spot_detail(spot_id: int):
+def spot_detail(spot_id: int, request: Request):
     conn = get_conn()
     try:
         s = conn.execute(
@@ -42,7 +42,7 @@ def spot_detail(spot_id: int):
             "SELECT summary_json FROM spot_summaries WHERE spot_id=?", (spot_id,)
         ).fetchone()
         curated = conn.execute(
-            "SELECT payload_json,dataset_updated_at FROM curated_reviews WHERE spot_id=? "
+            "SELECT payload_json,dataset_updated_at,catalog_key FROM curated_reviews WHERE spot_id=? "
             "ORDER BY dataset_updated_at DESC LIMIT 1", (spot_id,),
         ).fetchone()
         media = conn.execute(
@@ -51,6 +51,8 @@ def spot_detail(spot_id: int):
             "ORDER BY created_at DESC, id DESC",
             (spot_id,),
         ).fetchall()
+        from .local_reference_images import reference_assets
+        local_media = reference_assets(conn, spot_id, request)
         source_rows = conn.execute(
             "SELECT provider, payload_json, fetched_at, confidence FROM spot_sources "
             "WHERE spot_id=? ORDER BY fetched_at DESC, id DESC LIMIT 5",
@@ -77,8 +79,12 @@ def spot_detail(spot_id: int):
     d["curated_review"] = _loads(curated["payload_json"]) if curated else None
     if d["curated_review"] is not None:
         d["curated_review"]["updated_at"] = curated["dataset_updated_at"]
-    # 只返回已核验授权的台账图片；历史笔记图片仅作为兼容补充。
-    d["image_assets"] = [dict(item) for item in media]
+        from ...collector.review_digest import get_review_digest
+        d["curated_review"]["digest"] = get_review_digest(
+            d["curated_review"], curated['catalog_key'],
+            DB_PATH.parent / 'private/review-digest-20261029/review-digests.json')
+    # 公开图片须有授权；待授权截图仅通过本机专用入口返回，历史笔记兼容不变。
+    d["image_assets"] = [dict(item) for item in media] + local_media
     d["fact_sources"] = []
     for item in source_rows:
         payload = _loads(item["payload_json"], {}) or {}
@@ -87,7 +93,7 @@ def spot_detail(spot_id: int):
             "comment_count": payload.get("comment_count"), "fetched_at": item["fetched_at"],
             "confidence": item["confidence"],
         })
-    images = [item["storage_path"] for item in media]
+    images = [item["storage_path"] for item in d["image_assets"]]
     for n in notes:
         imgs = _loads(n["images_json"], [])
         if isinstance(imgs, list):

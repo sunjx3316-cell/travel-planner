@@ -1,20 +1,22 @@
 {
   "version": "1.0.0",
   "counts": {
-    "cities": 182,
-    "spots": 1324,
-    "curated_reviews": 1324,
+    "cities": 183,
+    "spots": 1331,
+    "curated_reviews": 1331,
     "spot_media": 543,
     "cart_items": 0,
     "plans": 0,
     "notes": 0,
     "review_status": {
-      "summary_ready": 1247,
+      "summary_ready": 1254,
       "weak_evidence": 77
     },
-    "images": 534
+    "images": 534,
+    "review_digest_places": 1331,
+    "review_digest_points": 2662
   },
-  "privacy": "No credentials, cookies, carts, saved plans, raw notes or demo summaries. Temporary xsec_token URL signatures removed.",
+  "privacy": "No credentials, cookies, carts, saved plans, raw notes, private screenshots or temporary platform access signatures. Verified public images only.",
   "files": {
     "images/0100a7d1bb5fdfd38ebb8eda5cd5806e58465d19141b20705e90ddddd0e459fa.jpg": "0100a7d1bb5fdfd38ebb8eda5cd5806e58465d19141b20705e90ddddd0e459fa",
     "images/017db6ddf2d9cd7d44b42f32e0a070dcea388666b11eb30d5b13c3b4cda6800b.jpg": "017db6ddf2d9cd7d44b42f32e0a070dcea388666b11eb30d5b13c3b4cda6800b",
@@ -550,6 +552,8 @@
     "images/ff2c5485e3e3b75d48df1bd891753d88ef3f565b42d0c662577ac9ede4ee6f42.jpg": "ff2c5485e3e3b75d48df1bd891753d88ef3f565b42d0c662577ac9ede4ee6f42",
     "images/ff65ebae3922a557d38f7b7e3a79bca25b4b7f230305cfecbc49280dce04a823.jpg": "ff65ebae3922a557d38f7b7e3a79bca25b4b7f230305cfecbc49280dce04a823",
     "images/ffa5aee22cf1fd481dd1ecac91e0db9bfe777058610ebe815e26154344655ede.jpg": "ffa5aee22cf1fd481dd1ecac91e0db9bfe777058610ebe815e26154344655ede",
-    "travel.db": "c13ac9345520913a67aacedb32e81f8a47ed156e82290ca870658d82f44220bc"
-  }
+    "review-digests.json": "cc29e35ec10a451c6e9c8342b8aaa7f9e2e65240d52de40a807713d1e9c6352d",
+    "travel.db": "4ad23ef9f252398e94b2c150a1eca302c08bdc54b303006bac076107e917b3a2"
+  },
+  "catalog_updated_at": "2026-10-29T05:19:07.215253+00:00"
 }

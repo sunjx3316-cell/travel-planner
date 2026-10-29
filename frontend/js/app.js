@@ -747,11 +747,22 @@ function curatedReviewHtml(review) {
   };
   const status = ({summary_ready: '体验整理', weak_evidence: '证据较少', no_evidence: '暂无可用评价'})[review.review_status] || '体验整理';
   const xhsStatus = ({sources_read: '小红书资料已读', unattempted: '小红书尚未检索', access_blocked: '小红书检索受阻', no_usable_evidence: '小红书暂无可用证据', searching: '小红书检索中'})[review.coverage?.xhs_research_status] || '';
+  const digest = review.digest;
+  const digestHtml = digest?.groups?.length ? digest.groups.filter(group => group.points?.length).map(group => `<section class="review-section"><h4>${esc(group.title)}</h4><ul>${group.points.map(point => {
+    const refs = (point.source_refs || []).map(id => {
+      const url = safeSourceUrl(byId.get(id)?.url);
+      return url ? `<a class="review-ref" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(id)}</a>` : '';
+    }).join('');
+    return `<li><strong>${esc(point.label)}</strong> · ${esc(point.text)}${refs}
+      ${(point.context || []).length ? `<small>${esc(point.context.join(' · '))}</small>` : ''}
+      ${point.is_excerpt ? `<details class="review-more"><summary>完整表述与条件</summary><p>${esc(point.original_text)}</p>${point.qualification ? `<small>${esc(point.qualification)}</small>` : ''}</details>` : point.qualification ? `<small>${esc(point.qualification)}</small>` : ''}</li>`;
+  }).join('')}</ul></section>`).join('') : '';
   return `<div class="curated-review"><div class="review-heading"><h3>${status}</h3><span>${sources.length} 条来源记录 · ${esc((review.updated_at || '').slice(0, 10))}</span></div>
-    ${section('值得体验', review.highlights || [], '尚未整理到具体亮点', true)}
-    ${section('出行留意', review.bottom_line_cautions || [], '尚未整理到具体负面，不代表没有风险', true)}
-    <p class="review-muted review-context">来源自述，保留当次条件；历史价格、开放和交通信息请出发前核实。</p>
-    <details class="review-details"><summary>更多体验与条件</summary>
+    ${digestHtml || section('值得体验', review.highlights || [], '尚未整理到具体亮点', true)}
+    ${digestHtml ? '' : section('出行留意', review.bottom_line_cautions || [], '尚未整理到具体负面，不代表没有风险', true)}
+    <p class="review-muted review-context">${digestHtml ? `${digest.method === 'semantic_reviewed' ? '提炼自' : '重点摘自'} ${digest.original_point_count} 条整理，不代表普遍结论。` : ''}来源自述，保留当次条件；历史价格、开放和交通信息请出发前核实。</p>
+    <details class="review-details"><summary>${digestHtml ? '全部评价与原始表述' : '更多体验与条件'}</summary>
+      ${digestHtml ? section('值得体验', review.highlights || []) + section('出行留意', review.bottom_line_cautions || []) : ''}
       ${section('个人偏好', review.preferences || [])}
       ${section('路线与适用条件', review.practical_conditions || [])}
       ${section('评论补充', review.comment_insights || [])}
@@ -854,7 +865,7 @@ function renderDetail() {
     : `<div class="img-placeholder"><div class="emoji">🏞️</div><div>${esc(d.name)}</div>
        <div class="note">图片将在获得授权或由用户投稿后展示</div></div>`;
   const imageMeta = primaryAsset
-    ? `<details class="image-meta"><summary>图片来源与署名 · ${esc(primaryAsset.provider)}${primaryAsset.captured_at ? ` · ${esc(primaryAsset.captured_at.slice(0, 10))}` : ""}</summary><p>${esc(primaryAsset.license_note || '')}</p>${safeSourceUrl(primaryAsset.origin_url) ? `<a href="${esc(safeSourceUrl(primaryAsset.origin_url))}" target="_blank" rel="noopener noreferrer">查看原图与许可</a>` : ''}</details>`
+    ? `<details class="image-meta"><summary>图片来源与署名 · ${esc(primaryAsset.provider)}${primaryAsset.captured_at ? ` · ${esc(primaryAsset.captured_at.slice(0, 10))}` : ""}</summary><p>${esc(primaryAsset.license_note || '')}</p>${safeSourceUrl(primaryAsset.origin_url) ? `<a href="${esc(safeSourceUrl(primaryAsset.origin_url))}" target="_blank" rel="noopener noreferrer">${primaryAsset.local_reference ? '查看原笔记' : '查看原图与许可'}</a>` : ''}</details>`
     : "";
   pane.innerHTML = `
     <div class="detail-card">

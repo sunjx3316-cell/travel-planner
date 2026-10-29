@@ -360,7 +360,7 @@ FUN_CAP_KM = 8.0   # 娱乐点距当天景点≤8km 视为"同片区",优先搭�
 
 def _classify_spot(s: dict, center: tuple) -> str:
     """项目分级:big=大项目/远项目(整天) | fun=娱乐(晚间填充) | small=小项目(半日)。"""
-    from ..schedule import EVENING, recommend_time
+    from ..schedule import EVENING, is_morning_market, recommend_time
 
     text = f"{s['name']} {' '.join(s.get('tags') or [])}"
     lng, lat = s.get("lng"), s.get("lat")
@@ -369,6 +369,8 @@ def _classify_spot(s: dict, center: tuple) -> str:
             _haversine_km(s, {"lng": center[0], "lat": center[1]}) >= FAR_KM:
         return "big"
     slot, _ = recommend_time(s["name"], s.get("tags") or [], s.get("commercial"))
+    if is_morning_market(s["name"], s.get("tags")):
+        return "small"
     if s.get("commercial") or slot == EVENING or any(k in text for k in FUN_KW):
         return "fun"     # 商圈/美食街/夜市/夜景:晚间娱乐
     if any(k in text for k in BIG_KW):
@@ -522,7 +524,7 @@ def _build_city_plan(name: str, summary: str, order: list, groups: dict, days: i
                      style: str, close_loop: bool, city_days: dict = None,
                      variant: str = "A") -> dict:
     """按城市顺序生成城市之旅方案:每城可多天(景点/博物馆/美食/住宿)。"""
-    from ..schedule import (AFTERNOON, EVENING, SLOT_ORDER, SUNSET, recommend_time)
+    from ..schedule import (AFTERNOON, EVENING, SLOT_ORDER, SUNSET, is_morning_market, recommend_time)
 
     legs = _route_legs(order)
     total_km = sum(l["km"] for l in legs)
@@ -651,8 +653,12 @@ def _build_city_plan(name: str, summary: str, order: list, groups: dict, days: i
             items.append(it)
             item_spots[id(it)] = s
         # 全天(大项目)排最前,其余按时段升序(如:全天石林 → 晚上夜市)
+        def morning_market(it):
+            original = item_spots.get(id(it), {})
+            return is_morning_market(original.get("name", it["spot"]), original.get("tags"))
+
         items.sort(key=lambda it: (0 if it.get("time") == "全天" else 1,
-                                   SLOT_ORDER.get(it.get("time"), 99)))
+                                   SLOT_ORDER.get(it.get("time"), 99), not morning_market(it)))
 
         # ---- 弹性时段:同片区可叠加(步行 ≤3.5km 算相邻),不搞"一段只能一处" ----
         WALK_KM = 3.5
@@ -673,7 +679,7 @@ def _build_city_plan(name: str, summary: str, order: list, groups: dict, days: i
             for it in list(items):
                 if it is n_it or it.get("time") not in ("上午", "下午", "傍晚"):
                     continue
-                if any(k in it["spot"] for k in DAY_ONLY_KW):
+                if morning_market(it) or any(k in it["spot"] for k in DAY_ONLY_KW):
                     continue
                 if _near(it, n_it):
                     it["time"] = "晚上"
@@ -703,7 +709,7 @@ def _build_city_plan(name: str, summary: str, order: list, groups: dict, days: i
                 continue
             if t in used_slots:
                 alt = "下午" if t == "上午" else "上午"
-                if alt not in used_slots:
+                if alt not in used_slots and not morning_market(it):
                     it["time"] = alt
                     it["time_reason"] = "与同天另一项目错峰,该时段可灵活互换"
                     used_slots.add(alt)
@@ -741,7 +747,7 @@ def _build_city_plan(name: str, summary: str, order: list, groups: dict, days: i
             items = kept
             afternoon_free = in_h < 6 and not any(it.get("time") == "下午" for it in kept)
             for it in dropped:
-                if afternoon_free and it.get("time") != "全天":
+                if afternoon_free and it.get("time") != "全天" and not morning_market(it):
                     it["time"] = "下午"
                     it["time_reason"] = "上午跨城，改为下午参观；请核实预约场次与闭馆时间"
                     items.append(it)

@@ -99,7 +99,7 @@ async def protect_public_api(request: Request, call_next):
 
 init_db()
 
-from .routers import cart, cities, plans, spots, export, rail, ai_settings  # noqa: E402
+from .routers import cart, cities, plans, spots, export, rail, ai_settings, local_reference_images  # noqa: E402
 
 app.include_router(cities.router)
 app.include_router(spots.router)
@@ -108,6 +108,7 @@ app.include_router(plans.router)
 app.include_router(export.router)
 app.include_router(rail.router)
 app.include_router(ai_settings.router)
+app.include_router(local_reference_images.router)
 
 
 @app.get("/api/status", response_model=StatusOut)
