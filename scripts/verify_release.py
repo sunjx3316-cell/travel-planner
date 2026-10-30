@@ -112,8 +112,9 @@ def main():
                 file=extracted/'bundled_data/images'/path.removeprefix('/bundled-images/')
                 assert file.is_file();public_count+=1
             else:
-                assert rights=='pending' and provider=='xhs_screenshot'
-                assert re.fullmatch(r'private/xhs-screenshots/release-references/[a-f0-9]{64}\.(jpg|jpeg|png|webp)',path),path
+                assert rights=='pending' and provider in ('xhs_screenshot','web_photo')
+                folder='xhs-screenshots' if provider=='xhs_screenshot' else 'web-photos'
+                assert re.fullmatch(r'private/'+folder+r'/release-references/[a-f0-9]{64}\.(jpg|jpeg|png|webp)',path),path
                 file=extracted/'bundled_data/reference-photos'/Path(path).name
                 assert file.is_file()
                 assert file.stem==hashlib.sha256(file.read_bytes()).hexdigest()

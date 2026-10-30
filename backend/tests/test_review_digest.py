@@ -87,9 +87,10 @@ def test_public_catalog_digests_are_complete_and_only_selected_photos_are_bundle
         import hashlib
         for mid, sid, path, provider, rights in pending:
             photo = by_id[mid]
-            assert provider == 'xhs_screenshot' and rights == photo['rights_status'] == 'pending'
+            assert provider in ('xhs_screenshot','web_photo') and rights == photo['rights_status'] == 'pending'
             assert photo['included_by'] == 'explicit_user_request' and photo['spot_id'] == sid
             assert photo['public_redistribution_authorization'] == 'not_verified'
-            assert path == 'private/xhs-screenshots/release-references/' + photo['sha256'] + '.jpg'
-            file = root / 'bundled_data/reference-photos' / (photo['sha256'] + '.jpg')
+            folder = 'xhs-screenshots' if provider == 'xhs_screenshot' else 'web-photos'
+            file = root / 'bundled_data' / photo['file']
+            assert path == 'private/' + folder + '/release-references/' + file.name
             assert hashlib.sha256(file.read_bytes()).hexdigest() == photo['sha256']

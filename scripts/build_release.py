@@ -2,7 +2,7 @@
 import argparse, hashlib, json, os, shutil, subprocess, zipfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
-VERSION='1.1.1'
+VERSION='1.2.0'
 def build(runtime, destination=None):
     build=(destination or ROOT/'dist')/f'travel-planner-{VERSION}-windows-x64'
     if build.exists(): raise RuntimeError('Build already exists; nothing deleted')

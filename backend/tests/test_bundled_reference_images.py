@@ -9,8 +9,8 @@ from backend.app import db
 from backend.app.main import app
 
 
-@pytest.fixture
-def bundled_reference(tmp_path,monkeypatch):
+@pytest.fixture(params=['xhs_screenshot', 'web_photo'])
+def bundled_reference(tmp_path,monkeypatch,request):
     database=tmp_path/'data/travel.db';database.parent.mkdir()
     with db.get_conn() as original,sqlite3.connect(database) as target:
         original.backup(target)
@@ -20,12 +20,14 @@ def bundled_reference(tmp_path,monkeypatch):
     filename=hashlib.sha256(content).hexdigest()+'.jpg'
     photo=tmp_path/'bundled_data/reference-photos'/filename
     photo.parent.mkdir(parents=True);photo.write_bytes(content)
+    provider=request.param
+    folder='xhs-screenshots' if provider=='xhs_screenshot' else 'web-photos'
     with db.get_conn() as c:
         sid=c.execute('SELECT id FROM spots LIMIT 1').fetchone()[0]
         media=c.execute('''INSERT INTO spot_media
             (spot_id,storage_path,origin_url,provider,license_note,rights_status,captured_at,created_at)
-            VALUES(?,?,?,?,?,?,?,?)''',(sid,'private/xhs-screenshots/release-references/'+filename,
-            'https://www.xiaohongshu.com/explore/fixture','xhs_screenshot',
+            VALUES(?,?,?,?,?,?,?,?)''',(sid,'private/'+folder+'/release-references/'+filename,
+            'https://example.com/scenic-photo',provider,
             'Cropped reference; authorization not verified','pending','2026-10-29','2026-10-29')).lastrowid
     return sid,media,photo
 

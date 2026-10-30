@@ -12,7 +12,8 @@ def smoke(root):
     for name,digest in manifest['files'].items(): assert hashlib.sha256((root/'bundled_data'/name).read_bytes()).hexdigest()==digest,name
     with socket.socket() as s: s.bind(('127.0.0.1',0)); port=s.getsockname()[1]
     env={k:v for k,v in os.environ.items() if not any(x in k.upper() for x in ('KEY','TOKEN','SECRET','AMAP','BAIDU','PYTHON','TRAVEL_','COOKIE'))}
-    env.update(DEEPSEEK_API_KEY='',AMAP_KEY='',PYTHONDONTWRITEBYTECODE='1',RATE_LIMIT_ENABLED='1')
+    # Bulk asset QA is deterministic; production limiter defaults are tested separately.
+    env.update(DEEPSEEK_API_KEY='',AMAP_KEY='',PYTHONDONTWRITEBYTECODE='1',RATE_LIMIT_ENABLED='0')
     # Run the real launcher; suppress only automatic browser opening during QA.
     bootstrap="import runpy,sys,webbrowser; webbrowser.open=lambda *a,**k: True; "+f"sys.argv=['launch.py','--port','{port}']; "+"runpy.run_path('launch.py',run_name='__main__')"
     with (root/'smoke.log').open('wb') as log:
@@ -56,11 +57,13 @@ def smoke(root):
             assert detail['curated_review'] and detail['image_assets']
             # Bundled screenshots remain pending, local-only references.  The
             # photo package contains only reviewed/cropped scenic image assets.
-            references=conn.execute("SELECT id,spot_id,storage_path,rights_status FROM spot_media WHERE provider='xhs_screenshot'").fetchall()
+            references=conn.execute("SELECT id,spot_id,storage_path,rights_status,provider FROM spot_media WHERE rights_status='pending'").fetchall()
             reference_checks=[]
-            for media_id,spot_id,storage_path,rights in references:
+            for media_id,spot_id,storage_path,rights,provider in references:
                 assert rights=='pending'
-                assert re.fullmatch(r'private/xhs-screenshots/release-references/[a-f0-9]{64}\.(jpg|jpeg|png|webp)',storage_path)
+                assert provider in ('xhs_screenshot','web_photo')
+                folder='xhs-screenshots' if provider=='xhs_screenshot' else 'web-photos'
+                assert re.fullmatch(r'private/'+folder+r'/release-references/[a-f0-9]{64}\.(jpg|jpeg|png|webp)',storage_path)
                 expected=root/'bundled_data/reference-photos'/Path(storage_path).name
                 assert expected.is_file()
                 endpoint=f'/api/local-reference-images/{media_id}'
@@ -82,6 +85,10 @@ def smoke(root):
             if version=='1.1.1':
                 assert len(references)==18
                 assert conn.execute('SELECT count(*) FROM curated_reviews').fetchone()[0]==1333
+            assert len(references)==manifest['counts']['reference_photos']
+            if version=='1.2.0':
+                assert conn.execute('SELECT count(distinct spot_id) FROM spot_media').fetchone()[0]==1034
+                assert conn.execute('SELECT lng,lat FROM spots WHERE id=6287').fetchone()==(110.559542,29.343982)
             conn.close()
             assert b'<html' in get('/rail/').lower()
             for path in ('/media/travel.db','/media/xhs_cookies.json','/bundled_data/travel.db','/.env','/data/private/ai_settings.json'):
@@ -123,7 +130,7 @@ def smoke(root):
             (root/'smoke-itinerary.pdf').write_bytes(pdf)
             final_status=api('/api/status')
             assert not final_status['llm_available'] and final_status['ai']['last_call'] is None
-            print(json.dumps({'version':version,'revision':release['revision'],'counts':manifest['counts'],'cases':results,'reference_photos_checked':reference_checks,'ai_called':False,'pdf_bytes':len(pdf),'port':port},ensure_ascii=False))
+            print(json.dumps({'version':version,'revision':release['revision'],'counts':manifest['counts'],'cases':results,'reference_photos_checked':len(reference_checks),'all_reference_non_owner_denied':True,'ai_called':False,'pdf_bytes':len(pdf),'port':port},ensure_ascii=False))
         finally:
             proc.terminate();proc.wait(timeout=15)
 if __name__=='__main__':

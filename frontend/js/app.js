@@ -865,7 +865,7 @@ function renderDetail() {
     : `<div class="img-placeholder"><div class="emoji">🏞️</div><div>${esc(d.name)}</div>
        <div class="note">图片将在获得授权或由用户投稿后展示</div></div>`;
   const imageMeta = primaryAsset
-    ? `<details class="image-meta"><summary>图片来源与署名 · ${esc(primaryAsset.provider)}${primaryAsset.captured_at ? ` · ${esc(primaryAsset.captured_at.slice(0, 10))}` : ""}</summary><p>${esc(primaryAsset.license_note || '')}</p>${safeSourceUrl(primaryAsset.origin_url) ? `<a href="${esc(safeSourceUrl(primaryAsset.origin_url))}" target="_blank" rel="noopener noreferrer">${primaryAsset.local_reference ? '查看原笔记' : '查看原图与许可'}</a>` : ''}</details>`
+    ? `<details class="image-meta"><summary>图片来源与署名 · ${esc(primaryAsset.provider)}${primaryAsset.captured_at ? ` · ${esc(primaryAsset.captured_at.slice(0, 10))}` : ""}</summary><p>${esc(primaryAsset.license_note || '')}</p>${safeSourceUrl(primaryAsset.origin_url) ? `<a href="${esc(safeSourceUrl(primaryAsset.origin_url))}" target="_blank" rel="noopener noreferrer">${primaryAsset.local_reference ? '查看来源' : '查看原图与许可'}</a>` : ''}</details>`
     : "";
   pane.innerHTML = `
     <div class="detail-card">
